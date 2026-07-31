@@ -1,0 +1,109 @@
+/* base.css — 设计令牌与基础排版
+ * 杂志海报风：纸白底 / 墨黑字 / 单一朱红强调 / 超大标题字 / 非对称栅格 */
+@layer tokens, base, layout, components, utilities;
+
+@layer tokens {
+  :root{
+    /* 纸张与墨色 */
+    --paper:#f2efe9;
+    --paper-2:#e8e4dc;
+    --card:#fffefb;
+    --ink:#14110f;
+    --ink-2:#3d3833;
+    --ink-3:#6e665e;
+    --ink-4:#a39a90;
+    --rule:#14110f;
+    --hair:#d6d0c6;
+
+    /* 强调色：朱红为主，其余为数据分类用 */
+    --red:#d8412f;
+    --red-ink:#a82a1c;
+    --ok:#1f7a4d;
+    --warn:#b4761a;
+    --bad:#c0392b;
+    --nsfw:#8e2d5f;
+
+    /* 图表色板：低饱和土色系，避免霓虹感 */
+    --c1:#d8412f; --c2:#1f4e79; --c3:#c98a12; --c4:#2f6b4f;
+    --c5:#7d4f9c; --c6:#a8552b; --c7:#3d7d8c; --c8:#8e2d5f;
+    --c9:#5c6b3f; --c10:#9c6b3f; --c11:#4a4e8c; --c12:#7a3d3d;
+
+    --serif:"Songti SC","Noto Serif SC","Source Han Serif SC",Georgia,"Times New Roman",serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Inter","PingFang SC","Hiragino Sans GB",
+           "Microsoft YaHei","Noto Sans SC",sans-serif;
+    --mono:"SF Mono","JetBrains Mono","Roboto Mono",Menlo,Consolas,monospace;
+
+    --gut:24px;
+    --maxw:1320px;
+  }
+  html[data-theme=dark]{
+    --paper:#14120f;
+    --paper-2:#1c1916;
+    --card:#1a1714;
+    --ink:#f4f0e8;
+    --ink-2:#d8d2c6;
+    --ink-3:#9a9288;
+    --ink-4:#6b645b;
+    --rule:#f4f0e8;
+    --hair:#332e28;
+    --red:#f05a44;
+    --red-ink:#ff7a63;
+    --ok:#4ec98a;
+    --warn:#e0a94a;
+    --bad:#f0705c;
+    --c1:#f05a44; --c2:#5b9bd5; --c3:#e0b04a; --c4:#57b085;
+    --c5:#a87fc4; --c6:#d18a5e; --c7:#6cb0bf; --c8:#c4759c;
+    --c9:#93a86b; --c10:#c49569; --c11:#8188c4; --c12:#c47a7a;
+  }
+}
+
+@layer base {
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    background:var(--paper); color:var(--ink);
+    font:400 15px/1.6 var(--sans);
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+    font-feature-settings:"tnum" 0;
+  }
+  button,input,select,textarea{font:inherit;color:inherit;background:none;border:none}
+  button{cursor:pointer}
+  a{color:inherit;text-decoration:none}
+  ol,ul{list-style:none}
+  table{border-collapse:collapse;width:100%}
+  svg{display:block}
+  img{max-width:100%}
+
+  /* 标题走衬线，正文与数字走无衬线/等宽 */
+  h1,h2,h3,h4{font-family:var(--serif);font-weight:600;line-height:1.1;letter-spacing:-.01em}
+  h1{font-size:clamp(30px,4.4vw,56px)}
+  h2{font-size:clamp(20px,2.4vw,30px)}
+  h3{font-size:17px}
+  h4{font-size:14px}
+
+  ::selection{background:var(--red);color:#fff}
+  :focus-visible{outline:2px solid var(--red);outline-offset:2px}
+  ::-webkit-scrollbar{width:11px;height:11px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--ink-4);border:4px solid transparent;
+    background-clip:content-box;border-radius:99px}
+  ::-webkit-scrollbar-thumb:hover{background:var(--ink-3);background-clip:content-box}
+
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.01ms!important;transition-duration:.01ms!important}
+  }
+}
+
+@layer utilities {
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .ser{font-family:var(--serif)}
+  .up{text-transform:uppercase;letter-spacing:.14em}
+  .hide{display:none!important}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);
+    white-space:nowrap}
+  .grow{flex:1}
+  .trunc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rule{border:0;border-top:1px solid var(--rule)}
+  .hair{border:0;border-top:1px solid var(--hair)}
+}

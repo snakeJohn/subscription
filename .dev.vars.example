@@ -1,0 +1,7 @@
+# 复制为 .dev.vars 后填入本地开发用的值（.dev.vars 已被 .gitignore 忽略）
+AUTH_PASSWORD=devpass123
+
+# 可选：提醒渠道
+# BARK_URL=https://api.day.app/YOUR_KEY
+# TG_BOT_TOKEN=123456:ABC-DEF
+# TG_CHAT_ID=123456789

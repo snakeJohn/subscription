@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="订阅计费统计 — 多周期、双币种、到期提醒">
+<title>SubStat · 订阅计费统计</title>
+<link rel="stylesheet" href="/css/app.css">
+<link rel="stylesheet" href="/css/views.css">
+</head>
+<body>
+<div class="boot" id="boot"><i>SubStat</i></div>
+
+<!-- 登录 -->
+<div class="login hide" id="login">
+  <div class="login-c">
+    <div class="lg">SubStat</div>
+    <div class="kick">订阅计费统计</div>
+    <div class="dbl"></div>
+    <form id="login-f">
+      <label class="fld"><span>访问密码</span>
+        <input class="in" type="password" id="login-p" autocomplete="current-password" required>
+      </label>
+      <div class="err" id="login-e"></div>
+      <button class="btn pri" type="submit" id="login-b">登 录</button>
+    </form>
+    <p class="tip" id="login-tip"></p>
+  </div>
+</div>
+
+<!-- 主体 -->
+<div class="hide" id="app">
+<div class="shell">
+  <header class="masthead">
+    <div class="mast-top">
+      <div class="logo"><b>SubStat</b><i>订阅计费统计</i></div>
+      <div class="mast-meta">
+        <span class="num" id="m-date"></span>
+        <div class="rate-chip" id="rate-chip">
+          <span>USD/CNY</span><b class="num" id="m-rate">—</b>
+          <button id="m-rate-btn" title="刷新实时汇率">⟳</button>
+          <em id="m-rate-src"></em>
+        </div>
+      </div>
+    </div>
+    <div class="dbl"></div>
+    <nav class="nav" role="tablist">
+      <button role="tab" data-v="dash" aria-selected="true">总览</button>
+      <button role="tab" data-v="subs" aria-selected="false">订阅明细<sup id="n-subs"></sup></button>
+      <button role="tab" data-v="cal" aria-selected="false">账期日历</button>
+      <button role="tab" data-v="lib" aria-selected="false">服务库<sup id="n-lib"></sup></button>
+      <button role="tab" data-v="set" aria-selected="false">设置</button>
+      <span class="sp"></span>
+      <span class="act">
+        <span class="cur-sw" id="cur-sw">
+          <button data-c="CNY" aria-pressed="true">¥ CNY</button>
+          <button data-c="USD" aria-pressed="false">$ USD</button>
+        </span>
+        <button class="btn-ico" id="b-theme" title="切换深浅">◐</button>
+        <button class="btn pri sm" id="b-add">＋ 添加</button>
+      </span>
+    </nav>
+  </header>
+
+  <!-- 总览 -->
+  <section class="view on" id="v-dash" role="tabpanel">
+    <div class="hero">
+      <div class="hero-l">
+        <div class="hero-kicker">每月固定支出</div>
+        <span class="hero-num" id="h-mon">—</span>
+        <div class="hero-sub" id="h-sub"></div>
+      </div>
+      <div class="hero-r">
+        <div class="hero-stat"><span>年度支出</span><b id="h-year">—</b></div>
+        <div class="hero-stat"><span>日均成本</span><b id="h-day">—</b></div>
+        <div class="hero-stat"><span>一次性投入</span><b id="h-once">—</b></div>
+        <div class="hero-stat"><span>近期扣费</span><b id="h-due">—</b><i id="h-due2"></i></div>
+      </div>
+    </div>
+    <div class="cols c2">
+      <div class="col">
+        <div class="sec-h"><h3>分类支出结构</h3><span>年度等效</span></div>
+        <div id="d-share"></div>
+      </div>
+      <div class="col">
+        <div class="sec-h"><h3>未来十二个月现金流</h3><span>含一次性</span></div>
+        <div id="d-flow"></div>
+      </div>
+    </div>
+    <div class="cols c2">
+      <div class="col">
+        <div class="sec-h"><h3>支出排行</h3><span>年度前十</span></div>
+        <div id="d-rank"></div>
+      </div>
+      <div class="col">
+        <div class="sec-h"><h3>即将扣费</h3><span>最近十二笔</span></div>
+        <div id="d-due"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 订阅明细 -->
+  <section class="view" id="v-subs" role="tabpanel">
+    <div class="view-head">
+      <div class="kicker">Subscriptions</div>
+      <h1>订阅明细</h1>
+    </div>
+    <div class="bar">
+      <input class="in q" id="f-q" placeholder="搜索名称 / 方案 / 备注…">
+      <select class="sel" id="f-cat"></select>
+      <select class="sel" id="f-cyc"></select>
+      <label class="chk"><input type="checkbox" id="f-nsfw"><span>NSFW</span></label>
+      <label class="chk"><input type="checkbox" id="f-off"><span>含停用</span></label>
+      <span class="grow"></span>
+      <span class="cnt" id="f-cnt"></span>
+    </div>
+    <div class="tbl-wrap" id="subs-wrap"></div>
+  </section>
+
+  <!-- 日历 -->
+  <section class="view" id="v-cal" role="tabpanel">
+    <div class="cal-bar">
+      <button class="btn-ico" id="c-prev">‹</button>
+      <h2 id="c-label"></h2>
+      <button class="btn-ico" id="c-next">›</button>
+      <button class="btn gh sm" id="c-today">回到本月</button>
+      <span class="grow"></span>
+      <span class="cnt num" id="c-sum"></span>
+    </div>
+    <div class="cal" id="c-grid"></div>
+  </section>
+
+  <!-- 服务库 -->
+  <section class="view" id="v-lib" role="tabpanel">
+    <div class="view-head">
+      <div class="kicker">Catalog</div>
+      <h1>服务库</h1>
+      <p>点击任意服务即可带定价方案预填。价格为公开定价参考值，请以官方页面为准。</p>
+    </div>
+    <div class="bar">
+      <input class="in q" id="l-q" placeholder="搜索服务库…">
+      <label class="chk"><input type="checkbox" id="l-nsfw"><span>显示成人内容</span></label>
+      <button class="btn gh sm" id="l-open">全部展开</button>
+      <button class="btn gh sm" id="l-close">全部折叠</button>
+      <span class="grow"></span>
+      <span class="cnt" id="l-cnt"></span>
+    </div>
+    <div class="lib-nav" id="l-nav"></div>
+    <div id="l-body"></div>
+  </section>
+
+  <!-- 设置 -->
+  <section class="view" id="v-set" role="tabpanel">
+    <div class="view-head">
+      <div class="kicker">Settings</div>
+      <h1>设置</h1>
+    </div>
+    <div class="set-grid" id="set-grid"></div>
+  </section>
+</div>
+</div>
+
+<div id="modal"></div>
+<div class="toast" id="toast"></div>
+<script type="module" src="/js/main.js"></script>
+</body>
+</html>

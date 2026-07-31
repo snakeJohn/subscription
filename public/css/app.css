@@ -1,0 +1,132 @@
+@import url('base.css');
+
+/* ——————————————————————————— 骨架 ——————————————————————————— */
+@layer layout {
+  .shell{max-width:var(--maxw);margin:0 auto;padding:0 var(--gut) 80px}
+
+  /* 报头：刊名 + 日期 + 导航，双线分隔 */
+  .masthead{padding:26px 0 0;position:sticky;top:0;background:var(--paper);z-index:40}
+  .mast-top{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;
+    padding-bottom:12px}
+  .logo{display:flex;align-items:baseline;gap:10px}
+  .logo b{font-family:var(--serif);font-size:34px;font-weight:700;letter-spacing:-.03em;
+    line-height:.9}
+  .logo i{font-style:normal;font-size:10px;color:var(--ink-3);letter-spacing:.2em;
+    text-transform:uppercase;padding-bottom:3px}
+  .mast-meta{display:flex;align-items:center;gap:16px;font-size:11px;color:var(--ink-3);
+    letter-spacing:.08em;text-transform:uppercase}
+  .mast-meta .num{font-size:12px;color:var(--ink-2)}
+  .rate-chip{display:flex;align-items:center;gap:7px;border:1px solid var(--hair);
+    padding:4px 9px;background:var(--card)}
+  .rate-chip button{color:var(--ink-3);font-size:12px;line-height:1;padding:1px 2px}
+  .rate-chip button:hover{color:var(--red)}
+  .rate-chip.spin button{animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .rate-chip em{font-style:normal;font-size:9.5px;color:var(--ink-4)}
+
+  /* 双线：粗 + 细，报纸感来源 */
+  .dbl{border-top:3px solid var(--rule);border-bottom:1px solid var(--rule);height:4px}
+
+  .nav{display:flex;gap:0;border-bottom:1px solid var(--rule);background:var(--paper)}
+  .nav button{padding:11px 18px 10px;font-size:13px;color:var(--ink-3);position:relative;
+    letter-spacing:.03em;white-space:nowrap;transition:color .15s}
+  .nav button:hover{color:var(--ink)}
+  .nav button[aria-selected=true]{color:var(--ink);font-weight:600}
+  .nav button[aria-selected=true]::after{content:"";position:absolute;left:0;right:0;
+    bottom:-1px;height:3px;background:var(--red)}
+  .nav button sup{font-size:9.5px;color:var(--ink-4);margin-left:4px;font-weight:400;
+    vertical-align:super}
+  .nav .sp{flex:1}
+  .nav .act{display:flex;align-items:center;gap:8px;padding-right:2px}
+
+  .view{display:none;padding-top:28px}
+  .view.on{display:block}
+  .view-head{margin-bottom:22px}
+  .view-head .kicker{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--red);font-weight:600;margin-bottom:5px}
+  .view-head p{font-size:13.5px;color:var(--ink-3);max-width:62ch;margin-top:6px}
+}
+
+/* ——————————————————————————— 组件 ——————————————————————————— */
+@layer components {
+  /* —— 按钮 —— */
+  .btn{border:1px solid var(--ink);padding:7px 15px;font-size:12.5px;background:var(--card);
+    letter-spacing:.03em;transition:.14s;white-space:nowrap;display:inline-flex;
+    align-items:center;gap:6px}
+  .btn:hover{background:var(--ink);color:var(--paper)}
+  .btn.pri{background:var(--red);border-color:var(--red);color:#fff;font-weight:600}
+  .btn.pri:hover{background:var(--red-ink);border-color:var(--red-ink)}
+  .btn.gh{border-color:var(--hair);color:var(--ink-3)}
+  .btn.gh:hover{border-color:var(--ink);background:transparent;color:var(--ink)}
+  .btn.dgr{border-color:var(--bad);color:var(--bad)}
+  .btn.dgr:hover{background:var(--bad);border-color:var(--bad);color:#fff}
+  .btn.sm{padding:4px 10px;font-size:11.5px}
+  .btn[disabled]{opacity:.4;pointer-events:none}
+  .btn-ico{border:1px solid var(--hair);width:30px;height:30px;display:grid;
+    place-items:center;font-size:13px;background:var(--card);color:var(--ink-3)}
+  .btn-ico:hover{border-color:var(--ink);color:var(--ink)}
+
+  /* 币种切换：连体开关 */
+  .cur-sw{display:flex;border:1px solid var(--ink)}
+  .cur-sw button{padding:5px 11px;font-size:11.5px;font-family:var(--mono);
+    letter-spacing:.02em}
+  .cur-sw button[aria-pressed=true]{background:var(--ink);color:var(--paper);font-weight:600}
+
+  /* —— 输入 —— */
+  .in,.sel,.ta{border:1px solid var(--hair);background:var(--card);padding:7px 10px;
+    font-size:13px;width:100%;transition:border-color .14s}
+  .in:focus,.sel:focus,.ta:focus{border-color:var(--ink);outline:none}
+  .ta{resize:vertical;min-height:62px;font-family:inherit}
+  .sel{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),
+    linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);
+    background-position:calc(100% - 14px) 51%,calc(100% - 9px) 51%;
+    background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:28px}
+  .fld{display:flex;flex-direction:column;gap:5px}
+  .fld>span,.lbl{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
+    color:var(--ink-3);font-weight:600}
+  .chk{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-2);
+    cursor:pointer;user-select:none}
+  .chk input{appearance:none;width:14px;height:14px;border:1px solid var(--ink-3);
+    background:var(--card);position:relative;flex:0 0 14px;cursor:pointer}
+  .chk input:checked{background:var(--red);border-color:var(--red)}
+  .chk input:checked::after{content:"✓";position:absolute;inset:0;color:#fff;font-size:10px;
+    display:grid;place-items:center;font-weight:700}
+
+  /* —— 标签 —— */
+  .tg{font-size:10px;padding:1px 6px;border:1px solid var(--hair);color:var(--ink-3);
+    letter-spacing:.06em;white-space:nowrap;font-family:var(--mono)}
+  .tg.cyc{border-color:var(--ink-3);color:var(--ink-2)}
+  .tg.once{border-color:var(--c5);color:var(--c5)}
+  .tg.nsfw{border-color:var(--nsfw);color:var(--nsfw)}
+  .tg.off{border-color:var(--ink-4);color:var(--ink-4)}
+
+  /* —— 图标 —— */
+  .ico{width:26px;height:26px;flex:0 0 26px;object-fit:contain;background:#fff;
+    border:1px solid var(--hair);padding:2px}
+  .ico.txt{display:grid;place-items:center;color:#fff;font-weight:700;font-size:11px;
+    padding:0;border:none;font-family:var(--sans)}
+  .ico.lg{width:38px;height:38px;flex-basis:38px}
+  .ico.lg.txt{font-size:16px}
+  .ico.xs{width:15px;height:15px;flex-basis:15px;padding:1px}
+  .ico.xs.txt{font-size:8px}
+
+  /* —— 空态 —— */
+  .empty{padding:66px 20px;text-align:center;border:1px dashed var(--hair)}
+  .empty b{font-family:var(--serif);font-size:20px;display:block;margin-bottom:7px}
+  .empty p{font-size:13px;color:var(--ink-3);margin-bottom:18px}
+  .mini-empty{padding:34px;text-align:center;color:var(--ink-4);font-size:12.5px}
+
+  /* —— toast —— */
+  .toast{position:fixed;bottom:26px;left:50%;transform:translate(-50%,90px);
+    background:var(--ink);color:var(--paper);padding:10px 18px;font-size:13px;z-index:200;
+    opacity:0;transition:.24s cubic-bezier(.2,.9,.3,1.1);pointer-events:none;max-width:88vw}
+  .toast.on{transform:translate(-50%,0);opacity:1}
+  .toast.err{background:var(--bad);color:#fff}
+
+  /* —— 加载遮罩 —— */
+  .boot{position:fixed;inset:0;background:var(--paper);display:grid;place-items:center;
+    z-index:300;transition:opacity .3s}
+  .boot.gone{opacity:0;pointer-events:none}
+  .boot i{font-style:normal;font-family:var(--serif);font-size:22px;color:var(--ink-3);
+    letter-spacing:.04em}
+}

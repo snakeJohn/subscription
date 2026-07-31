@@ -1,0 +1,16 @@
+{
+  "name": "substat",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "node test/billing.test.mjs",
+    "db:init": "wrangler d1 execute substat --file=./schema.sql --remote",
+    "db:init:local": "wrangler d1 execute substat --file=./schema.sql --local"
+  },
+  "devDependencies": {
+    "wrangler": "4.110.0"
+  }
+}

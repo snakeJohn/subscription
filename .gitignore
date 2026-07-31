@@ -1,0 +1,17 @@
+node_modules/
+.wrangler/
+.dev.vars
+*.log
+
+# 含真实 account_id / D1 / KV ID 的本地配置，勿提交
+wrangler.toml.local
+
+# Android
+android/local.properties
+android/.gradle/
+android/build/
+android/app/build/
+android/.idea/
+android/*.iml
+*.apk
+*.aab

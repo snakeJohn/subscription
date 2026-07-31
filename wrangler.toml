@@ -1,0 +1,45 @@
+name = "substat"
+main = "worker/index.js"
+compatibility_date = "2025-01-01"
+
+# 你的 Cloudflare 账号 ID：wrangler whoami 可查
+account_id = "YOUR_ACCOUNT_ID"
+
+# 自定义域名：域名需已托管在同一账号下，Cloudflare 会自动创建 DNS 记录并签发证书。
+# 不需要自定义域名可整段删除，改用 workers.dev 子域。
+routes = [
+  { pattern = "subs.example.com", custom_domain = true }
+]
+
+# 前端静态资源（public/）由 Workers Assets 托管，
+# 未匹配 /api/* 的请求走静态资源，SPA 由 index.html 兜底。
+[assets]
+directory = "./public"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+# wrangler d1 create substat 后把输出的 database_id 填进来
+[[d1_databases]]
+binding = "DB"
+database_name = "substat"
+database_id = "YOUR_D1_DATABASE_ID"
+
+# 汇率缓存 + 会话存储
+# wrangler kv namespace create SUBSTAT_KV 后把输出的 id 填进来
+[[kv_namespaces]]
+binding = "KV"
+id = "YOUR_KV_NAMESPACE_ID"
+
+# 每天 01:00 UTC（北京时间 09:00）检查到期并推送提醒
+[triggers]
+crons = ["0 1 * * *"]
+
+[vars]
+# 汇率数据源，逗号分隔，按顺序回退
+RATE_SOURCES = "frankfurter,exchangerate,fawazahmed"
+
+# 需通过 wrangler secret put 设置（勿写在此文件）：
+#   AUTH_PASSWORD   登录密码明文，首次启动自动哈希入库
+#   BARK_URL        形如 https://api.day.app/YOUR_KEY
+#   TG_BOT_TOKEN    Telegram Bot Token
+#   TG_CHAT_ID      Telegram Chat ID
