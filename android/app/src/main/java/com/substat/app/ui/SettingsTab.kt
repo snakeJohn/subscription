@@ -1,5 +1,6 @@
 package com.substat.app.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -7,7 +8,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -26,6 +29,12 @@ import androidx.compose.ui.unit.sp
 import java.time.Instant
 import java.time.ZoneId
 
+/* 版式节奏：相关元素 8 / 标签到控件 10 / 控件之间 18 / 小节之间 36 */
+private val SpTight = 8.dp
+private val SpLabel = 10.dp
+private val SpCtrl = 18.dp
+private val SpSection = 36.dp
+
 @Composable
 fun SettingsTab(vm: MainViewModel, ui: UiState) {
     val p = LocalPalette.current
@@ -34,158 +43,181 @@ fun SettingsTab(vm: MainViewModel, ui: UiState) {
 
     LazyColumn(
         Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 80.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 80.dp),
     ) {
         item {
             Kicker("SETTINGS")
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(SpTight))
             Text("设置", fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold,
                 fontSize = 30.sp, color = p.ink)
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(28.dp))
         }
 
         // ——— 汇率与显示 ———
         item {
-            SectionHeader("汇率与显示")
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("USD → CNY", fontSize = 12.sp, color = p.ink2)
-                    Text(
-                        "%.4f".format(ui.prefs.rate).trimEnd('0').trimEnd('.'),
-                        fontSize = 20.sp, fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold, color = p.ink,
-                    )
-                    val src = ui.prefs.rateSource
-                    val at = ui.prefs.rateAt
-                    if (src.isNotBlank() || at > 0) {
-                        val ago = if (at > 0) {
-                            val mins = (System.currentTimeMillis() - at) / 60000
-                            when {
-                                mins < 60 -> "$mins 分钟前"
-                                mins < 1440 -> "${mins / 60} 小时前"
-                                else -> Instant.ofEpochMilli(at)
-                                    .atZone(ZoneId.systemDefault()).toLocalDate().toString()
-                            }
-                        } else ""
+            SettingsSection("汇率与显示") {
+                // 汇率数值与取数按钮各占一行，长中文按钮不会被挤窄
+                Column(
+                    Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(SpLabel),
+                ) {
+                    Column {
+                        FieldLabel("USD → CNY")
                         Text(
-                            listOfNotNull(src.ifBlank { null }, ago.ifBlank { null })
-                                .joinToString(" · "),
-                            fontSize = 10.sp, color = p.ink4, fontFamily = FontFamily.Monospace,
+                            "%.4f".format(ui.prefs.rate).trimEnd('0').trimEnd('.'),
+                            fontSize = 26.sp, fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold, color = p.ink,
                         )
+                        val src = ui.prefs.rateSource
+                        val at = ui.prefs.rateAt
+                        if (src.isNotBlank() || at > 0) {
+                            val ago = if (at > 0) {
+                                val mins = (System.currentTimeMillis() - at) / 60000
+                                when {
+                                    mins < 60 -> "$mins 分钟前"
+                                    mins < 1440 -> "${mins / 60} 小时前"
+                                    else -> Instant.ofEpochMilli(at)
+                                        .atZone(ZoneId.systemDefault()).toLocalDate().toString()
+                                }
+                            } else ""
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                listOfNotNull(src.ifBlank { null }, ago.ifBlank { null })
+                                    .joinToString(" · "),
+                                fontSize = 11.5.sp, color = p.ink4,
+                                fontFamily = FontFamily.Monospace,
+                            )
+                        }
                     }
+                    InkButton("获取实时汇率", { vm.refreshRate() }, enabled = !ui.busy,
+                        modifier = Modifier.fillMaxWidth())
                 }
-                InkButton("获取实时汇率", { vm.refreshRate() }, enabled = !ui.busy)
+
+                Spacer(Modifier.height(SpCtrl))
+                Hairline()
+                Spacer(Modifier.height(SpCtrl))
+
+                FieldLabel("展示币种")
+                SegmentedPick(
+                    options = listOf("CNY" to "¥ 人民币", "USD" to "$ 美元"),
+                    selected = ui.prefs.cur, columns = 2,
+                ) { vm.setCur(it) }
+
+                Spacer(Modifier.height(SpCtrl))
+                FieldLabel("主题")
+                SegmentedPick(
+                    options = listOf("system" to "随系统", "light" to "浅色", "dark" to "深色"),
+                    selected = ui.prefs.theme, columns = 3,
+                ) { vm.setTheme(it) }
+
+                Spacer(Modifier.height(SpCtrl))
+                FieldLabel("「近期扣费」窗口：${ui.prefs.warnDays} 天")
+                SegmentedPick(
+                    options = listOf(3 to "3 天", 7 to "7 天", 14 to "14 天", 30 to "30 天"),
+                    selected = ui.prefs.warnDays, columns = 4,
+                ) { vm.setWarnDays(it) }
+
+                Spacer(Modifier.height(SpCtrl))
+                Hairline()
+                ToggleRow(
+                    "显示成人内容分类", "关闭后 NSFW 订阅在明细中隐藏",
+                    ui.prefs.showNsfw,
+                ) { vm.setShowNsfw(it) }
             }
-            Spacer(Modifier.height(16.dp))
-            Text("展示币种", fontSize = 11.sp, fontWeight = FontWeight.Bold,
-                letterSpacing = 1.4.sp, color = p.ink3)
-            Spacer(Modifier.height(6.dp))
-            SegmentedPick(
-                options = listOf("CNY" to "¥ 人民币", "USD" to "$ 美元"),
-                selected = ui.prefs.cur, columns = 2,
-            ) { vm.setCur(it) }
-            Spacer(Modifier.height(14.dp))
-            Text("主题", fontSize = 11.sp, fontWeight = FontWeight.Bold,
-                letterSpacing = 1.4.sp, color = p.ink3)
-            Spacer(Modifier.height(6.dp))
-            SegmentedPick(
-                options = listOf("system" to "随系统", "light" to "浅色", "dark" to "深色"),
-                selected = ui.prefs.theme, columns = 3,
-            ) { vm.setTheme(it) }
-            Spacer(Modifier.height(14.dp))
-            Text("「近期扣费」窗口：${ui.prefs.warnDays} 天", fontSize = 12.sp, color = p.ink2)
-            Spacer(Modifier.height(6.dp))
-            SegmentedPick(
-                options = listOf(3 to "3 天", 7 to "7 天", 14 to "14 天", 30 to "30 天"),
-                selected = ui.prefs.warnDays, columns = 4,
-            ) { vm.setWarnDays(it) }
-            Spacer(Modifier.height(14.dp))
-            ToggleRow(
-                "显示成人内容分类", "关闭后 NSFW 订阅在明细中隐藏",
-                ui.prefs.showNsfw,
-            ) { vm.setShowNsfw(it) }
-            Spacer(Modifier.height(22.dp))
         }
 
         // ——— 提醒 ———
         item {
-            SectionHeader("到期提醒")
-            ToggleRow(
-                "本机通知提醒", "每天在设定时间检查，命中窗口时发系统通知",
-                ui.prefs.localNotify,
-            ) { vm.setLocalNotify(it) }
-            if (ui.prefs.localNotify) {
-                Spacer(Modifier.height(12.dp))
-                Text("提醒时间：每天 ${"%02d".format(ui.prefs.notifyHour)}:05",
-                    fontSize = 12.sp, color = p.ink2)
-                Spacer(Modifier.height(6.dp))
-                SegmentedPick(
-                    options = listOf(8 to "08:05", 9 to "09:05", 12 to "12:05",
-                                     20 to "20:05"),
-                    selected = ui.prefs.notifyHour, columns = 4,
-                ) { vm.setNotifyHour(it) }
+            SettingsSection("到期提醒") {
+                ToggleRow(
+                    "本机通知提醒", "每天在设定时间检查，命中窗口时发系统通知",
+                    ui.prefs.localNotify,
+                ) { vm.setLocalNotify(it) }
+                if (ui.prefs.localNotify) {
+                    Hairline()
+                    Spacer(Modifier.height(SpCtrl))
+                    FieldLabel("提醒时间：每天 ${"%02d".format(ui.prefs.notifyHour)}:05")
+                    SegmentedPick(
+                        options = listOf(8 to "08:05", 9 to "09:05", 12 to "12:05",
+                                         20 to "20:05"),
+                        selected = ui.prefs.notifyHour, columns = 4,
+                    ) { vm.setNotifyHour(it) }
+                }
+                Spacer(Modifier.height(SpCtrl))
+                InkButton("在服务端执行一次提醒检查", { vm.runNotifyNow() },
+                    enabled = !ui.busy, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(SpTight))
+                NoteText(
+                    "服务端提醒（Bark / Telegram / Webhook）在网页版「设置」中配置，" +
+                        "每天由 Cron 自动触发；此处仅为手动触发一次。",
+                )
             }
-            Spacer(Modifier.height(14.dp))
-            InkButton("在服务端执行一次提醒检查", { vm.runNotifyNow() },
-                enabled = !ui.busy, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "服务端提醒（Bark / Telegram / Webhook）在网页版「设置」中配置，" +
-                    "每天由 Cron 自动触发；此处仅为手动触发一次。",
-                fontSize = 11.sp, color = p.ink4, lineHeight = 16.sp,
-            )
-            Spacer(Modifier.height(22.dp))
         }
 
         // ——— 数据 ———
         item {
-            SectionHeader("数据")
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("订阅记录", fontSize = 12.sp, color = p.ink2)
-                    Text("${ui.subs.size} 条" + if (ui.fromCache) "（离线缓存）" else "",
-                        fontSize = 11.sp, color = p.ink4, fontFamily = FontFamily.Monospace)
+            SettingsSection("数据") {
+                Row(
+                    Modifier.fillMaxWidth().heightIn(min = 44.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("订阅记录", fontSize = 13.5.sp, color = p.ink2)
+                        Spacer(Modifier.height(4.dp))
+                        Text("${ui.subs.size} 条" + if (ui.fromCache) "（离线缓存）" else "",
+                            fontSize = 12.sp, color = p.ink4,
+                            fontFamily = FontFamily.Monospace)
+                    }
+                    Spacer(Modifier.width(SpCtrl))
+                    InkButton("同步", { vm.refresh() }, enabled = !ui.refreshing)
                 }
-                InkButton("同步", { vm.refresh() }, enabled = !ui.refreshing)
+                Spacer(Modifier.height(SpCtrl))
+                NoteText(
+                    "数据存储在你的 Cloudflare D1，与网页版实时同步。" +
+                        "导入导出、清空等批量操作请在网页版进行。",
+                )
             }
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "数据存储在你的 Cloudflare D1，与网页版实时同步。" +
-                    "导入导出、清空等批量操作请在网页版进行。",
-                fontSize = 11.sp, color = p.ink4, lineHeight = 16.sp,
-            )
-            Spacer(Modifier.height(22.dp))
         }
 
         // ——— 账户 ———
         item {
-            SectionHeader("账户")
-            Text(ui.prefs.baseUrl.ifBlank { "未配置" }, fontSize = 11.5.sp, color = p.ink3,
-                fontFamily = FontFamily.Monospace)
-            Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                InkButton("退出登录", { confirmLogout = true })
-                InkButton("更换服务器", { confirmReset = true }, danger = true)
+            SettingsSection("账户") {
+                Text(ui.prefs.baseUrl.ifBlank { "未配置" }, fontSize = 13.sp, color = p.ink3,
+                    fontFamily = FontFamily.Monospace, lineHeight = 20.sp)
+                Spacer(Modifier.height(SpCtrl))
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(SpLabel),
+                ) {
+                    InkButton("退出登录", { confirmLogout = true },
+                        modifier = Modifier.weight(1f))
+                    InkButton("更换服务器", { confirmReset = true }, danger = true,
+                        modifier = Modifier.weight(1f))
+                }
             }
-            Spacer(Modifier.height(22.dp))
         }
 
         // ——— 口径说明 ———
         item {
             SectionHeader("计费口径")
-            listOf(
-                "年度等效 = 单价 × (365 ÷ 周期天数)。周期天数：日 1、周 7、月 30.4375、" +
-                    "季 91.3125、半年 182.625、年 365。",
-                "一次性付费不计入周期性支出，单列「一次性投入」，但仍出现在日历与现金流中。",
-                "月末锚点：1 月 31 日起订的月费，扣费日为 1/31 → 2/28 → 3/31 → 4/30，" +
-                    "始终以首次付费日为锚点取当月可用的最近日期。",
-                "份数：多设备或合租按份数乘算；若为分摊，直接把单价填成你实际承担的金额。",
-            ).forEach {
-                Text(it, fontSize = 11.5.sp, color = p.ink3, lineHeight = 18.sp,
-                    modifier = Modifier.padding(bottom = 8.dp))
+            // 说明文字收进浅底方块，与上方可操作项区分
+            Column(
+                Modifier.fillMaxWidth().background(p.paper2).padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(SpLabel),
+            ) {
+                listOf(
+                    "年度等效 = 单价 × (365 ÷ 周期天数)。周期天数：日 1、周 7、月 30.4375、" +
+                        "季 91.3125、半年 182.625、年 365。",
+                    "一次性付费不计入周期性支出，单列「一次性投入」，但仍出现在日历与现金流中。",
+                    "月末锚点：1 月 31 日起订的月费，扣费日为 1/31 → 2/28 → 3/31 → 4/30，" +
+                        "始终以首次付费日为锚点取当月可用的最近日期。",
+                    "份数：多设备或合租按份数乘算；若为分摊，直接把单价填成你实际承担的金额。",
+                ).forEach {
+                    Text(it, fontSize = 12.5.sp, color = p.ink2, lineHeight = 21.sp)
+                }
             }
-            Spacer(Modifier.height(10.dp))
-            Text("SubStat for Android · 1.0.0", fontSize = 10.sp, color = p.ink4,
+            Spacer(Modifier.height(SpCtrl))
+            Text("SubStat for Android · 1.0.0", fontSize = 11.5.sp, color = p.ink4,
                 fontFamily = FontFamily.Monospace)
         }
     }
@@ -202,14 +234,47 @@ fun SettingsTab(vm: MainViewModel, ui: UiState) {
     )
 }
 
+/** 小节容器：标题 + 内容 + 统一的小节间距 */
+@Composable
+private fun SettingsSection(
+    title: String,
+    note: String? = null,
+    content: @Composable () -> Unit,
+) {
+    Column(Modifier.fillMaxWidth()) {
+        SectionHeader(title, note)
+        content()
+        Spacer(Modifier.height(SpSection))
+    }
+}
+
+/** 字段小标签：小号加粗字距，与表单页一致 */
+@Composable
+private fun FieldLabel(text: String) {
+    Text(text, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp,
+        color = LocalPalette.current.ink3, lineHeight = 18.sp,
+        modifier = Modifier.padding(bottom = SpLabel))
+}
+
+/** 辅助说明文字：允许换行，行距放宽 */
+@Composable
+private fun NoteText(text: String) {
+    Text(text, fontSize = 12.sp, color = LocalPalette.current.ink4, lineHeight = 20.sp)
+}
+
 @Composable
 private fun ToggleRow(title: String, hint: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     val p = LocalPalette.current
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 60.dp).padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Column(Modifier.weight(1f)) {
-            Text(title, fontSize = 13.sp, color = p.ink)
-            Text(hint, fontSize = 10.5.sp, color = p.ink4, lineHeight = 15.sp)
+            Text(title, fontSize = 14.sp, color = p.ink, lineHeight = 20.sp)
+            Spacer(Modifier.height(4.dp))
+            Text(hint, fontSize = 11.5.sp, color = p.ink4, lineHeight = 17.sp)
         }
+        Spacer(Modifier.width(SpCtrl))
         Switch(
             checked = checked, onCheckedChange = onChange,
             colors = SwitchDefaults.colors(
