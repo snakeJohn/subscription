@@ -27,6 +27,10 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      # gradlew 的执行位可能在 Windows 上创建时丢失，兜底补上
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
       - name: Run unit tests
         run: ./gradlew test --console=plain
 
