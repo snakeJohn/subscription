@@ -65,9 +65,13 @@
   .btn-ico{border:1px solid var(--hair);width:30px;height:30px;display:grid;
     place-items:center;font-size:13px;line-height:1;background:var(--card);color:var(--ink-3)}
   .btn-ico:hover{border-color:var(--ink);color:var(--ink)}
-  /* 明暗图标：SVG 保证严格居中，切换时半圆翻转 180° 呼应渐变 */
-  #b-theme svg{transition:transform .5s cubic-bezier(.3,1,.4,1)}
-  html[data-theme=dark] #b-theme svg{transform:rotate(180deg)}
+  /* 明暗图标：CSS 直绘半圆，不依赖字体字形（◐ 在中文字体里墨迹偏离字框中心）；
+   * font-size:0 兼顺带灭掉旧缓存 HTML 里的字形。深色时翻转 180° 呼应渐变切换 */
+  #b-theme{font-size:0}
+  #b-theme::before{content:"";width:13px;height:13px;border:1.3px solid currentColor;
+    border-radius:50%;background:linear-gradient(90deg,currentColor 50%,transparent 50%);
+    transition:transform .5s cubic-bezier(.3,1,.4,1)}
+  html[data-theme=dark] #b-theme::before{transform:rotate(180deg)}
 
   /* 币种切换：连体开关 */
   .cur-sw{display:flex;border:1px solid var(--ink)}
