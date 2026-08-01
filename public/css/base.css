@@ -35,8 +35,11 @@
 
     --gut:24px;
     --maxw:1320px;
+
+    color-scheme:light;
   }
   html[data-theme=dark]{
+    color-scheme:dark;
     --paper:#14120f;
     --paper-2:#1c1916;
     --card:#1a1714;
@@ -106,4 +109,11 @@
   .trunc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .rule{border:0;border-top:1px solid var(--rule)}
   .hair{border:0;border-top:1px solid var(--hair)}
+
+  /* 主题渐变切换：切换瞬间由 js 挂上 .theming，让全局色彩平滑过渡，结束后移除。
+   * prefers-reduced-motion 在 base 层以 !important 压制时长，仍为即时切换。 */
+  html.theming, html.theming *, html.theming *::before, html.theming *::after{
+    transition:background-color .45s ease, color .45s ease, border-color .45s ease,
+      fill .45s ease, stroke .45s ease, box-shadow .45s ease!important;
+  }
 }

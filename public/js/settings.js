@@ -87,7 +87,7 @@ export function renderSettings(S, ctl){
       </div>
     </div></div>
 
-    <div class="set-b" style="grid-column:1/-1"><h3>计费口径</h3>
+    <div class="set-b full"><h3>计费口径</h3>
       <div class="doc">
         <p><b>年度等效</b> = 单价 × (365 ÷ 周期天数)。周期天数：日 1、周 7、月 30.4375、
           季 91.3125、半年 182.625、年 365。月均 = 年度 ÷ 12，日均 = 年度 ÷ 365。</p>

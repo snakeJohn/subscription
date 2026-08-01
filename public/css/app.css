@@ -63,8 +63,11 @@
   .btn.sm{padding:4px 10px;font-size:11.5px}
   .btn[disabled]{opacity:.4;pointer-events:none}
   .btn-ico{border:1px solid var(--hair);width:30px;height:30px;display:grid;
-    place-items:center;font-size:13px;background:var(--card);color:var(--ink-3)}
+    place-items:center;font-size:13px;line-height:1;background:var(--card);color:var(--ink-3)}
   .btn-ico:hover{border-color:var(--ink);color:var(--ink)}
+  /* 明暗图标：SVG 保证严格居中，切换时半圆翻转 180° 呼应渐变 */
+  #b-theme svg{transition:transform .5s cubic-bezier(.3,1,.4,1)}
+  html[data-theme=dark] #b-theme svg{transform:rotate(180deg)}
 
   /* 币种切换：连体开关 */
   .cur-sw{display:flex;border:1px solid var(--ink)}

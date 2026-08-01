@@ -186,9 +186,15 @@ function bind(){
     const b = e.target.closest('[data-c]');
     if(b) setCur(b.dataset.c);
   };
+  let themeT;
   $('#b-theme').onclick = () => {
     S.theme = S.theme === 'dark' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = S.theme;
+    /* 挂上 .theming 让全局色彩渐变过渡（见 base.css），结束后移除 */
+    const root = document.documentElement;
+    root.classList.add('theming');
+    root.dataset.theme = S.theme;
+    clearTimeout(themeT);
+    themeT = setTimeout(() => root.classList.remove('theming'), 520);
     pref();
     saveSettings({ theme:S.theme });
   };
