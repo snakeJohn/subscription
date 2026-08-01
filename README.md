@@ -62,6 +62,21 @@ npx wrangler deploy
 数据表在首次请求时自动创建，无需手动跑 migration。若想预先建表：
 `npm run db:init`。
 
+**GitHub Actions 自动部署（可选）**
+
+`.github/workflows/deploy.yml` 会在 `worker/` 或 `public/` 变更推到 main 时自动部署。
+需要在仓库 Secrets 里配置四个值：
+
+```bash
+gh secret set CF_ACCOUNT_ID          # wrangler whoami 可查
+gh secret set CF_D1_DATABASE_ID
+gh secret set CF_KV_NAMESPACE_ID
+gh secret set CLOUDFLARE_API_TOKEN   # dash.cloudflare.com/profile/api-tokens
+                                     # 模板「编辑 Cloudflare Workers」+ 追加 Account→D1→Edit
+```
+
+CI 部署不写 routes（自定义域名首次绑定后持久生效），因此 token 无需 Zone 级权限。
+
 **关于自定义域名与 token 权限**
 
 `wrangler deploy` 写 `routes` 时会调 `/zones/<id>/workers/routes`，需要
