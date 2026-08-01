@@ -8,6 +8,13 @@ import { CATS } from './catalog.js';
 export function renderSettings(S, ctl){
   const st = S.raw || {};
   const ch = S.channels || {};
+  /* 上次 WebDAV 备份时间（服务端在成功备份后写入 webdav_last） */
+  const wdLast = (() => {
+    try{
+      const o = JSON.parse(st.webdav_last || '');
+      return `上次备份：${new Date(o.at).toLocaleString('zh-CN', { hour12:false })} · ${o.n} 条`;
+    }catch(e){ return '尚未备份过'; }
+  })();
   $('#set-grid').innerHTML = `
     <div class="set-b"><h3>汇率与显示</h3><div class="set-r">
       <div class="row">
@@ -75,6 +82,29 @@ export function renderSettings(S, ctl){
       <button class="btn dgr" id="s-clr">清空全部订阅</button>
       <input type="file" id="s-file" accept=".json,application/json" hidden>
       <div class="doc">数据存储在 Cloudflare D1，跨设备同步。导出的 JSON 可用于备份或迁移。</div>
+    </div></div>
+
+    <div class="set-b"><h3>WebDAV 云备份</h3><div class="set-r">
+      <label class="fld"><span>服务器地址（目录）</span>
+        <input class="in" id="s-wd-url" placeholder="https://dav.jianguoyun.com/dav/substat/"
+          value="${esc(st.webdav_url||'')}"></label>
+      <div class="row">
+        <label class="fld"><span>账号</span>
+          <input class="in" id="s-wd-user" autocomplete="off"
+            value="${esc(st.webdav_user||'')}"></label>
+        <label class="fld"><span>应用密码</span>
+          <input class="in" id="s-wd-pass" type="password" autocomplete="new-password"
+            value="${esc(st.webdav_pass||'')}"></label>
+      </div>
+      <label class="chk"><input type="checkbox" id="s-wd-auto" ${st.webdav_auto==='1'?'checked':''}>
+        <span>每天自动备份（随定时任务）</span></label>
+      <div class="row">
+        <button class="btn" id="s-wd-test">测试连接</button>
+        <button class="btn" id="s-wd-bak">立即备份</button>
+        <button class="btn gh" id="s-wd-res">从云端恢复</button>
+      </div>
+      <div class="doc">${esc(wdLast)}。备份为目录下的 <code>substat-backup.json</code>，
+        由服务端代理访问，无需网盘开放 CORS。坚果云请在「安全选项」里生成应用密码。</div>
     </div></div>
 
     <div class="set-b"><h3>账户与安全</h3><div class="set-r">
@@ -247,6 +277,68 @@ export function renderSettings(S, ctl){
     await api.clearAll();
     toast('已清空');
     await ctl.reload();
+  };
+
+  /* —— WebDAV —— */
+  const wdSave = (id, key) => {
+    const el = $(id);
+    el.onchange = () => {
+      const v = el.value.trim();
+      if(key === 'webdav_pass' && v.startsWith('••')) return;   /* 掩码值不回写 */
+      ctl.save({ [key]: v });
+    };
+  };
+  wdSave('#s-wd-url','webdav_url');
+  wdSave('#s-wd-user','webdav_user');
+  wdSave('#s-wd-pass','webdav_pass');
+  $('#s-wd-auto').onchange = e => ctl.save({ webdav_auto: e.target.checked ? '1' : '0' });
+  $('#s-wd-test').onclick = async () => {
+    const b = $('#s-wd-test');
+    b.disabled = true;
+    try{
+      const r = await api.webdavTest({
+        url:  $('#s-wd-url').value.trim(),
+        user: $('#s-wd-user').value.trim(),
+        pass: $('#s-wd-pass').value,
+      });
+      toast(r.ok ? '连接成功' : '连接失败：' + (r.detail || r.status), !r.ok);
+    }catch(e){ toast('连接失败：' + e.message, true); }
+    finally{ b.disabled = false; }
+  };
+  $('#s-wd-bak').onclick = async () => {
+    const b = $('#s-wd-bak');
+    b.disabled = true;
+    try{
+      const r = await api.webdavBackup();
+      if(r.ok){
+        toast(`已备份 ${r.count} 条到云端`);
+        S.raw.webdav_last = JSON.stringify({ at: Date.now(), n: r.count });
+        renderSettings(S, ctl);
+      }else toast('备份失败：' + (r.detail || ''), true);
+    }catch(e){ toast('备份失败：' + e.message, true); }
+    finally{ b.disabled = false; }
+  };
+  $('#s-wd-res').onclick = async () => {
+    const b = $('#s-wd-res');
+    b.disabled = true;
+    try{
+      const r = await api.webdavRestore();
+      if(!r.ok) return toast('拉取失败：' + (r.detail || ''), true);
+      const items = Array.isArray(r.data && r.data.items) ? r.data.items : null;
+      if(!items || !items.length) return toast('云端备份为空或格式不正确', true);
+      let mode = 'merge';
+      if(S.subs.length){
+        const at = r.data.at ? String(r.data.at).slice(0,19).replace('T',' ') : '时间未知';
+        const rep = await confirmDlg(
+          `云端备份 ${items.length} 条（${at}），当前已有 ${S.subs.length} 条。\n` +
+          `点「覆盖替换」将删除现有全部记录后导入；点取消可改为合并追加。`, '覆盖替换');
+        mode = rep ? 'replace' : 'merge';
+      }
+      const res = await api.bulk(items, mode);
+      toast(`已恢复 ${res.imported} 条${res.skipped?`，跳过 ${res.skipped} 条无效`:''}`);
+      await ctl.reload();
+    }catch(e){ toast('恢复失败：' + e.message, true); }
+    finally{ b.disabled = false; }
   };
 
   /* —— 账户 —— */

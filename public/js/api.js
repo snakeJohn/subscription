@@ -51,4 +51,9 @@ export const api = {
   notifyTest: ch   => req('/notify/test', { method:'POST', body: body({ channel:ch }) }),
   notifyRun:  o    => req('/notify/run',  { method:'POST', body: body(o || {}) }),
   notifyLog:  ()   => req('/notify/log'),
+
+  /* WebDAV 云备份 */
+  webdavTest:    cfg => req('/webdav/test',    { method:'POST', body: body(cfg || {}) }),
+  webdavBackup:  ()  => req('/webdav/backup',  { method:'POST' }),
+  webdavRestore: ()  => req('/webdav/restore', { method:'POST' }),
 };

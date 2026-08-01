@@ -208,7 +208,7 @@ details.grp[open]>summary{border-bottom:1px solid var(--hair)}
 .set-b{padding:30px 32px 34px 0;border-right:1px solid var(--hair);
   border-bottom:1px solid var(--hair)}
 .set-b:nth-child(even){padding-left:32px;padding-right:0;border-right:none}
-.set-b.full{grid-column:1/-1;border-right:none;padding-right:0}
+.set-b.full{grid-column:1/-1;border-right:none;padding-right:0;padding-left:0}
 .set-b h3{font-size:15px;padding-bottom:9px;margin-bottom:18px;
   border-bottom:1px solid var(--rule)}
 .set-r{display:flex;flex-direction:column;gap:16px}

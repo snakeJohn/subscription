@@ -7,6 +7,7 @@ import { ensurePassword, verifyPassword, hashPassword, createSession, checkSessi
 import { getRate } from './rate.js';
 import { runNotify, loadSettings, notifyConfig, normalize,
          sendBark, sendTelegram, sendWebhook } from './notify.js';
+import { webdavConfig, davTest, davBackup, davGet } from './webdav.js';
 import { CYCLES, CYC_KEYS } from '../public/shared/billing.js';
 
 const J = (data, status = 200, headers = {}) => new Response(JSON.stringify(data), {
@@ -21,7 +22,8 @@ const SUB_FIELDS = ['name','domain','cat','plan','price','cur','cycle','qty','st
 /* 允许前端写入的设置键（白名单，防止越权写 password_hash） */
 const SET_KEYS = ['rate','rate_mode','cur','warn','theme','week','nsfw','notify_days',
                   'notify_bark','notify_tg','notify_hook','bark_url','bark_sound',
-                  'bark_level','tg_token','tg_chat','webhook_url','lib_collapsed'];
+                  'bark_level','tg_token','tg_chat','webhook_url','lib_collapsed',
+                  'webdav_url','webdav_user','webdav_pass','webdav_auto'];
 
 /* 建表语句与 schema.sql 保持一致；每个 isolate 只执行一次。
  * 好处是首次部署无需手动跑 migration，本地 dev 也开箱可用。 */
@@ -52,7 +54,17 @@ async function ensureSchema(env){
 export default {
   async fetch(req, env, ctx){
     const url = new URL(req.url);
-    if(!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(req);
+    if(!url.pathname.startsWith('/api/')){
+      /* run_worker_first 开启后静态资源也先进 Worker：Worker 响应不进边缘 HTTP 缓存，
+       * 避免个别节点在部署后仍吐旧 HTML；HTML 额外声明 no-cache 让浏览器必回源校验 */
+      const res = await env.ASSETS.fetch(req);
+      if((res.headers.get('Content-Type') || '').includes('text/html')){
+        const h = new Headers(res.headers);
+        h.set('Cache-Control', 'no-cache');
+        return new Response(res.body, { status: res.status, headers: h });
+      }
+      return res;
+    }
     try{
       await ensureSchema(env);
       return await route(req, env, url, ctx);
@@ -70,6 +82,15 @@ export default {
         if(r.rate) await putSetting(env, 'rate', String(r.rate));
       }
       await runNotify(env, {});
+      /* 每日自动备份到 WebDAV（若启用）；失败不影响提醒任务 */
+      if(st.webdav_auto === '1' && st.webdav_url){
+        try{
+          const { items, payload } = await buildBackup(env, st, 'cron');
+          const out = await davBackup(webdavConfig(st), payload);
+          if(out.ok) await putSetting(env, 'webdav_last',
+            JSON.stringify({ at: Date.now(), n: items.length }));
+        }catch(e){ /* 网络异常等，静默跳过，下次 cron 再试 */ }
+      }
     })());
   },
 };
@@ -221,7 +242,7 @@ async function route(req, env, url, ctx){
         tg:   !!((env.TG_BOT_TOKEN || st.tg_token) && (env.TG_CHAT_ID || st.tg_chat)),
         bark_from_env: !!env.BARK_URL, tg_from_env: !!env.TG_BOT_TOKEN,
       };
-      for(const k of ['tg_token','bark_url','webhook_url'])
+      for(const k of ['tg_token','bark_url','webhook_url','webdav_pass'])
         if(st[k]) st[k] = mask(st[k]);
       return J({ settings: st, channels: secretSet });
     }
@@ -277,6 +298,32 @@ async function route(req, env, url, ctx){
     return J({ items: r.results || [] });
   }
 
+  /* —— WebDAV 云备份 —— */
+  if(p === '/api/webdav/test' && m === 'POST'){
+    const st = await loadSettings(env);
+    const b = await req.json().catch(() => ({}));
+    /* 允许直接用表单里未保存的值测试；掩码密码回退到已保存值 */
+    const cfg = webdavConfig({
+      webdav_url:  b.url  ?? st.webdav_url,
+      webdav_user: b.user ?? st.webdav_user,
+      webdav_pass: (b.pass && !String(b.pass).startsWith('••')) ? b.pass : st.webdav_pass,
+    });
+    if(!cfg.url) return bad('请先填写 WebDAV 地址');
+    return J(await davTest(cfg));
+  }
+  if(p === '/api/webdav/backup' && m === 'POST'){
+    const st = await loadSettings(env);
+    const { items, payload } = await buildBackup(env, st, 'manual');
+    const out = await davBackup(webdavConfig(st), payload);
+    if(out.ok) await putSetting(env, 'webdav_last',
+      JSON.stringify({ at: Date.now(), n: items.length }));
+    return J({ ...out, count: items.length });
+  }
+  if(p === '/api/webdav/restore' && m === 'POST'){
+    const st = await loadSettings(env);
+    return J(await davGet(webdavConfig(st)));
+  }
+
   /* —— 元数据 —— */
   if(p === '/api/meta') return J({ cycles: CYCLES, cycleKeys: CYC_KEYS });
 
@@ -288,6 +335,18 @@ async function putSetting(env, k, v){
     'INSERT INTO settings(key,value,updated_at) VALUES(?,?,?) ' +
     'ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at')
     .bind(k, String(v), Date.now()).run();
+}
+
+/* 组装备份内容：与前端「导出 JSON」同构（v:2 + items），恢复时可直接走 bulk 导入 */
+async function buildBackup(env, st, source){
+  const r = await env.DB.prepare(
+    'SELECT * FROM subscriptions ORDER BY created_at').all();
+  const items = (r.results || []).map(normalize);
+  const payload = JSON.stringify({
+    v:2, at: new Date().toISOString(), source,
+    settings: { rate: st.rate, cur: st.cur }, items,
+  }, null, 2);
+  return { items, payload };
 }
 const mask = s => s.length <= 8 ? '••••' : '••••' + s.slice(-4);
 

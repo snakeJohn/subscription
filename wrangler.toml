@@ -13,10 +13,13 @@ routes = [
 
 # 前端静态资源（public/）由 Workers Assets 托管，
 # 未匹配 /api/* 的请求走静态资源，SPA 由 index.html 兜底。
+# run_worker_first：所有请求先进 Worker，静态资源由 Worker 转发（不进边缘 HTTP 缓存），
+# 根治部署后个别节点仍返回旧 HTML 的缓存陈旧问题。
 [assets]
 directory = "./public"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
+run_worker_first = true
 
 # wrangler d1 create substat 后把输出的 database_id 填进来
 [[d1_databases]]
