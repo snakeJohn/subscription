@@ -35,6 +35,9 @@ jobs:
           # 自定义域名已持久绑定在 Worker 上，无需每次重写 routes；
           # 删掉后 token 也不需要 Zone 级权限（见 README「关于自定义域名与 token 权限」）
           sed -i '/^routes = \[/,/^\]/d' wrangler.ci.toml
+          # 没有 routes 时 wrangler 会默认打开 workers.dev 与 Preview URL，显式关掉，
+          # 只保留自定义域名这一个入口
+          printf '\nworkers_dev = false\npreview_urls = false\n' >> wrangler.ci.toml
 
       - uses: cloudflare/wrangler-action@v3
         if: env.HAS_TOKEN == 'true'
