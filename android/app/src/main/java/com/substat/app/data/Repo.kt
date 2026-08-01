@@ -59,6 +59,7 @@ class Repo(
     suspend fun settings() = api.settings()
     suspend fun saveSettings(patch: Map<String, String>) = api.saveSettings(patch)
     suspend fun notifyRun() = api.notifyRun()
+    suspend fun webdavBackup() = api.webdavBackup()
 
     /** 取汇率并落本地，供离线时继续折算 */
     suspend fun rate(refresh: Boolean): RateResponse {

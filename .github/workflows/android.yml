@@ -11,6 +11,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # 发布 Release 需要
     defaults:
       run:
         working-directory: android
@@ -58,3 +60,27 @@ jobs:
         with:
           name: test-report
           path: android/app/build/reports/tests/
+
+      # main 分支每次构建成功都滚动更新「latest」Release，
+      # 无需登录 GitHub 也能直接下载 APK（Artifacts 需要登录且会过期）
+      - name: Read versionName
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        id: ver
+        run: echo "v=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish rolling release
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-latest
+          name: "SubStat Android v${{ steps.ver.outputs.v }}"
+          body: |
+            主分支最新构建（自动更新）。
+            - `app-release.apk` — R8 压缩版，日常安装用这个（debug 签名，可直接安装）
+            - `app-debug.apk` — 调试版，包名带 `.debug` 后缀，可与正式版共存
+            构建于 commit ${{ github.sha }}
+          prerelease: false
+          make_latest: true
+          files: |
+            android/app/build/outputs/apk/release/*.apk
+            android/app/build/outputs/apk/debug/*.apk

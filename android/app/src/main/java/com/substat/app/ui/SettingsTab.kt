@@ -172,9 +172,15 @@ fun SettingsTab(vm: MainViewModel, ui: UiState) {
                     InkButton("同步", { vm.refresh() }, enabled = !ui.refreshing)
                 }
                 Spacer(Modifier.height(SpCtrl))
+                Hairline()
+                Spacer(Modifier.height(SpCtrl))
+                InkButton("备份到 WebDAV 云端", { vm.backupWebdav() },
+                    enabled = !ui.busy, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(SpTight))
                 NoteText(
                     "数据存储在你的 Cloudflare D1，与网页版实时同步。" +
-                        "导入导出、清空等批量操作请在网页版进行。",
+                        "WebDAV 地址与凭据、每日自动备份、从云端恢复，以及导入导出、" +
+                        "清空等批量操作请在网页版「设置」进行。",
                 )
             }
         }
@@ -217,7 +223,7 @@ fun SettingsTab(vm: MainViewModel, ui: UiState) {
                 }
             }
             Spacer(Modifier.height(SpCtrl))
-            Text("SubStat for Android · 1.0.0", fontSize = 11.5.sp, color = p.ink4,
+            Text("SubStat for Android · 1.1.0", fontSize = 11.5.sp, color = p.ink4,
                 fontFamily = FontFamily.Monospace)
         }
     }

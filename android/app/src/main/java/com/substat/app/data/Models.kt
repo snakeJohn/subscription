@@ -84,6 +84,12 @@ data class NotifyRunResponse(
     val skipped: Int = 0,
     val msg: String? = null,
 )
+@Serializable
+data class WebdavBackupResponse(
+    val ok: Boolean = false,
+    val count: Int = 0,
+    val detail: String? = null,
+)
 
 /** 分类，与 public/js/catalog.js 的 CATS 对齐 */
 enum class Category(val key: String, val label: String, val en: String, val nsfw: Boolean = false) {

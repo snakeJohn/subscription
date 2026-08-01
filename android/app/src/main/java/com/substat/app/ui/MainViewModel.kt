@@ -221,6 +221,22 @@ class MainViewModel(
         }
     }
 
+    /** 触发服务端 WebDAV 备份；地址与凭据在网页版设置中配置 */
+    fun backupWebdav() = viewModelScope.launch {
+        _state.value = _state.value.copy(busy = true)
+        try {
+            val r = repo.webdavBackup()
+            _state.value = _state.value.copy(
+                busy = false,
+                toast = if (r.ok) "已备份 ${r.count} 条到 WebDAV"
+                        else "备份失败：${r.detail ?: "未知错误"}",
+            )
+        } catch (e: Exception) {
+            _state.value = _state.value.copy(busy = false)
+            report(e)
+        }
+    }
+
     // ——— 偏好 ———
 
     fun setCur(c: String) = viewModelScope.launch {

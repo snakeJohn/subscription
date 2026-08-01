@@ -145,6 +145,13 @@ class SubStatApi(
         }
     )
 
+    /** 触发一次 WebDAV 备份；WebDAV 地址等在网页版设置中配置 */
+    suspend fun webdavBackup(): WebdavBackupResponse = handle(
+        client.post(url("/webdav/backup")) {
+            auth(); contentType(ContentType.Application.Json); setBody(emptyMap<String, String>())
+        }
+    )
+
     /** 探测地址是否为 SubStat 服务端，用于首次配置校验 */
     suspend fun probe(base: String): Boolean = runCatching {
         val resp = client.get("${base.trimEnd('/')}/api/health")
