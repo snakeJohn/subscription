@@ -44,6 +44,8 @@ data class UiState(
     val setupError: String? = null,
     val loginError: String? = null,
     val busy: Boolean = false,
+    /** 服务端设置原文（含 webdav_* 等，敏感值为掩码），进设置页时拉取 */
+    val serverSt: Map<String, String> = emptyMap(),
 )
 
 class MainViewModel(
@@ -230,6 +232,38 @@ class MainViewModel(
                 busy = false,
                 toast = if (r.ok) "已备份 ${r.count} 条到 WebDAV"
                         else "备份失败：${r.detail ?: "未知错误"}",
+            )
+        } catch (e: Exception) {
+            _state.value = _state.value.copy(busy = false)
+            report(e)
+        }
+    }
+
+    /** 拉取服务端设置原文（webdav_* 等），供设置页展示 */
+    fun loadServerSettings() = viewModelScope.launch {
+        runCatching { repo.settings() }.onSuccess {
+            _state.value = _state.value.copy(serverSt = it.settings)
+        }
+    }
+
+    /** 保存服务端设置；掩码值（••开头）由服务端忽略不覆盖 */
+    fun saveServerSettings(patch: Map<String, String>, msg: String? = null) =
+        viewModelScope.launch {
+            try {
+                repo.saveSettings(patch)
+                _state.value = _state.value.copy(
+                    serverSt = _state.value.serverSt + patch, toast = msg,
+                )
+            } catch (e: Exception) { report(e) }
+        }
+
+    fun testWebdav(url: String, user: String, pass: String) = viewModelScope.launch {
+        _state.value = _state.value.copy(busy = true)
+        try {
+            val r = repo.webdavTest(url, user, pass)
+            _state.value = _state.value.copy(
+                busy = false,
+                toast = if (r.ok) "WebDAV 连接成功" else "连接失败：${r.detail ?: "未知错误"}",
             )
         } catch (e: Exception) {
             _state.value = _state.value.copy(busy = false)

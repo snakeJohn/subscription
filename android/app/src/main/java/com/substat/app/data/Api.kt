@@ -152,6 +152,14 @@ class SubStatApi(
         }
     )
 
+    /** 用给定凭据测试 WebDAV 连接（掩码密码由服务端回退到已保存值） */
+    suspend fun webdavTest(u: String, user: String, pass: String): WebdavBackupResponse = handle(
+        client.post(url("/webdav/test")) {
+            auth(); contentType(ContentType.Application.Json)
+            setBody(WebdavTestRequest(u, user, pass))
+        }
+    )
+
     /** 探测地址是否为 SubStat 服务端，用于首次配置校验 */
     suspend fun probe(base: String): Boolean = runCatching {
         val resp = client.get("${base.trimEnd('/')}/api/health")

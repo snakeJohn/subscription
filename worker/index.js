@@ -8,6 +8,7 @@ import { getRate } from './rate.js';
 import { runNotify, loadSettings, notifyConfig, normalize,
          sendBark, sendTelegram, sendWebhook } from './notify.js';
 import { webdavConfig, davTest, davBackup, davGet } from './webdav.js';
+import { LIB } from '../public/js/catalog.js';
 import { CYCLES, CYC_KEYS } from '../public/shared/billing.js';
 
 const J = (data, status = 200, headers = {}) => new Response(JSON.stringify(data), {
@@ -326,6 +327,14 @@ async function route(req, env, url, ctx){
 
   /* —— 元数据 —— */
   if(p === '/api/meta') return J({ cycles: CYCLES, cycleKeys: CYC_KEYS });
+  /* 服务库：与网页版同一份数据（public/js/catalog.js），供 App 端点选预填。
+   * plans 由异构数组转为对象，便于强类型客户端反序列化 */
+  if(p === '/api/catalog') return J({
+    items: LIB.map(x => ({
+      cat: x.cat, name: x.name, domain: x.domain, nsfw: x.nsfw ? 1 : 0,
+      plans: x.plans.map(pl => ({ plan: pl[0], price: pl[1], cur: pl[2], cycle: pl[3] })),
+    })),
+  });
 
   return bad('接口不存在', 404);
 }

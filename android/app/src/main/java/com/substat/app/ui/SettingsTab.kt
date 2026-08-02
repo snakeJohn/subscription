@@ -12,10 +12,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -24,6 +26,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.time.Instant
@@ -40,6 +44,8 @@ fun SettingsTab(vm: MainViewModel, ui: UiState) {
     val p = LocalPalette.current
     var confirmLogout by remember { mutableStateOf(false) }
     var confirmReset by remember { mutableStateOf(false) }
+    /* 进入设置页时拉一次服务端设置（webdav_* 等） */
+    LaunchedEffect(Unit) { vm.loadServerSettings() }
 
     LazyColumn(
         Modifier.fillMaxWidth(),
@@ -172,15 +178,73 @@ fun SettingsTab(vm: MainViewModel, ui: UiState) {
                     InkButton("同步", { vm.refresh() }, enabled = !ui.refreshing)
                 }
                 Spacer(Modifier.height(SpCtrl))
-                Hairline()
+                NoteText(
+                    "数据存储在你的 Cloudflare D1，与网页版实时同步。" +
+                        "导入导出、清空等批量操作请在网页版进行。",
+                )
+            }
+        }
+
+        // ——— WebDAV 云备份 ———
+        item {
+            SettingsSection("WebDAV 云备份") {
+                val st = ui.serverSt
+                var wdUrl by remember(st["webdav_url"]) {
+                    mutableStateOf(st["webdav_url"] ?: "")
+                }
+                var wdUser by remember(st["webdav_user"]) {
+                    mutableStateOf(st["webdav_user"] ?: "")
+                }
+                var wdPass by remember(st["webdav_pass"]) {
+                    mutableStateOf(st["webdav_pass"] ?: "")
+                }
+                OutlinedTextField(
+                    value = wdUrl, onValueChange = { wdUrl = it },
+                    label = { Text("服务器地址（目录）") },
+                    placeholder = { Text("https://dav.jianguoyun.com/dav/substat/", fontSize = 12.sp) },
+                    singleLine = true, modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(SpLabel))
+                OutlinedTextField(
+                    value = wdUser, onValueChange = { wdUser = it },
+                    label = { Text("账号") },
+                    singleLine = true, modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(SpLabel))
+                OutlinedTextField(
+                    value = wdPass, onValueChange = { wdPass = it },
+                    label = { Text("应用密码") },
+                    visualTransformation = if (wdPass.startsWith("••"))
+                        VisualTransformation.None else PasswordVisualTransformation(),
+                    singleLine = true, modifier = Modifier.fillMaxWidth(),
+                )
                 Spacer(Modifier.height(SpCtrl))
-                InkButton("备份到 WebDAV 云端", { vm.backupWebdav() },
+                ToggleRow(
+                    "每天自动备份", "随服务端定时任务执行，失败不影响到期提醒",
+                    st["webdav_auto"] == "1",
+                ) { vm.saveServerSettings(mapOf("webdav_auto" to if (it) "1" else "0")) }
+                Spacer(Modifier.height(SpCtrl))
+                Row(horizontalArrangement = Arrangement.spacedBy(SpLabel)) {
+                    InkButton("保存配置", {
+                        /* 掩码密码不回传，服务端保持原值 */
+                        val patch = buildMap {
+                            put("webdav_url", wdUrl.trim())
+                            put("webdav_user", wdUser.trim())
+                            if (!wdPass.startsWith("••")) put("webdav_pass", wdPass)
+                        }
+                        vm.saveServerSettings(patch, "WebDAV 配置已保存")
+                    }, enabled = !ui.busy, modifier = Modifier.weight(1f))
+                    InkButton("测试连接", {
+                        vm.testWebdav(wdUrl.trim(), wdUser.trim(), wdPass)
+                    }, enabled = !ui.busy, modifier = Modifier.weight(1f))
+                }
+                Spacer(Modifier.height(SpLabel))
+                InkButton("立即备份到云端", { vm.backupWebdav() },
                     enabled = !ui.busy, modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(SpTight))
                 NoteText(
-                    "数据存储在你的 Cloudflare D1，与网页版实时同步。" +
-                        "WebDAV 地址与凭据、每日自动备份、从云端恢复，以及导入导出、" +
-                        "清空等批量操作请在网页版「设置」进行。",
+                    "备份为目录下的 substat-backup.json，由服务端代理访问。" +
+                        "坚果云请在「安全选项」里生成应用密码。从云端恢复请在网页版操作。",
                 )
             }
         }

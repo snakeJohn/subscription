@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -59,7 +60,7 @@ fun SetupScreen(vm: MainViewModel, ui: UiState) {
     val p = LocalPalette.current
     var url by rememberSaveable { mutableStateOf("https://") }
     Box(
-        Modifier.fillMaxSize().background(p.paper).imePadding(),
+        Modifier.fillMaxSize().background(p.paper).systemBarsPadding().imePadding(),
         contentAlignment = Alignment.Center,
     ) {
         Column(
@@ -115,7 +116,7 @@ fun LoginScreen(vm: MainViewModel, ui: UiState) {
     val p = LocalPalette.current
     var pw by rememberSaveable { mutableStateOf("") }
     Box(
-        Modifier.fillMaxSize().background(p.paper).imePadding(),
+        Modifier.fillMaxSize().background(p.paper).systemBarsPadding().imePadding(),
         contentAlignment = Alignment.Center,
     ) {
         Column(

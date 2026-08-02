@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
@@ -115,7 +116,9 @@ fun HomeScreen(vm: MainViewModel, ui: UiState) {
 @Composable
 private fun Masthead(vm: MainViewModel, ui: UiState) {
     val p = LocalPalette.current
-    Column(Modifier.background(p.paper).padding(start = 16.dp, end = 8.dp, top = 10.dp)) {
+    /* 自定义顶栏要自己处理状态栏 inset：背景先铺满（含状态栏下方），内容再让位 */
+    Column(Modifier.background(p.paper).statusBarsPadding()
+        .padding(start = 16.dp, end = 8.dp, top = 10.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("SubStat", fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold,
                 fontSize = 22.sp, color = p.ink)

@@ -90,6 +90,8 @@ data class WebdavBackupResponse(
     val count: Int = 0,
     val detail: String? = null,
 )
+@Serializable
+data class WebdavTestRequest(val url: String, val user: String, val pass: String)
 
 /** 分类，与 public/js/catalog.js 的 CATS 对齐 */
 enum class Category(val key: String, val label: String, val en: String, val nsfw: Boolean = false) {
