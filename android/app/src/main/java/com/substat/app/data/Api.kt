@@ -126,6 +126,9 @@ class SubStatApi(
         }
     )
 
+    // ——— 服务库 ———
+    suspend fun catalog(): CatalogResponse = handle(client.get(url("/catalog")) { auth() })
+
     // ——— 设置 / 汇率 / 提醒 ———
     suspend fun settings(): SettingsResponse = handle(client.get(url("/settings")) { auth() })
 

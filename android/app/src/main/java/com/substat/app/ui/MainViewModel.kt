@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.substat.app.SubStatApp
 import com.substat.app.data.AuthException
 import com.substat.app.data.Billing
+import com.substat.app.data.CatalogItem
 import com.substat.app.data.Cycle
 import com.substat.app.data.Prefs
 import com.substat.app.data.Repo
@@ -46,6 +47,9 @@ data class UiState(
     val busy: Boolean = false,
     /** 服务端设置原文（含 webdav_* 等，敏感值为掩码），进设置页时拉取 */
     val serverSt: Map<String, String> = emptyMap(),
+    /** 服务库目录：首次打开选择器时拉取并驻留内存 */
+    val catalog: List<CatalogItem> = emptyList(),
+    val catalogLoading: Boolean = false,
 )
 
 class MainViewModel(
@@ -267,6 +271,19 @@ class MainViewModel(
             )
         } catch (e: Exception) {
             _state.value = _state.value.copy(busy = false)
+            report(e)
+        }
+    }
+
+    /** 拉取服务库目录；已加载则跳过，供选择器首次打开时调用 */
+    fun loadCatalog() = viewModelScope.launch {
+        if (_state.value.catalog.isNotEmpty()) return@launch
+        _state.value = _state.value.copy(catalogLoading = true)
+        try {
+            val items = repo.catalog()
+            _state.value = _state.value.copy(catalog = items, catalogLoading = false)
+        } catch (e: Exception) {
+            _state.value = _state.value.copy(catalogLoading = false)
             report(e)
         }
     }

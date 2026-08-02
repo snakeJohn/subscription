@@ -93,6 +93,24 @@ data class WebdavBackupResponse(
 @Serializable
 data class WebdavTestRequest(val url: String, val user: String, val pass: String)
 
+/** 服务库：公开参考价目录，供「＋」快速预填表单 */
+@Serializable
+data class CatalogPlan(
+    val plan: String = "",
+    val price: Double = 0.0,
+    val cur: String = "CNY",
+    val cycle: String = "month",
+)
+@Serializable
+data class CatalogItem(
+    val cat: String = "",
+    val name: String = "",
+    val domain: String = "",
+    val nsfw: Int = 0,
+    val plans: List<CatalogPlan> = emptyList(),
+)
+@Serializable data class CatalogResponse(val items: List<CatalogItem> = emptyList())
+
 /** 分类，与 public/js/catalog.js 的 CATS 对齐 */
 enum class Category(val key: String, val label: String, val en: String, val nsfw: Boolean = false) {
     AI("ai", "AI 会员", "AI"),

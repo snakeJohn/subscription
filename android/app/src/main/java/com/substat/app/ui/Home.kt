@@ -45,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.substat.app.data.Subscription
+import com.substat.app.data.SubscriptionPayload
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,6 +55,8 @@ fun HomeScreen(vm: MainViewModel, ui: UiState) {
     var editing by remember { mutableStateOf<Subscription?>(null) }
     var showForm by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf<Subscription?>(null) }
+    var showPicker by remember { mutableStateOf(false) }
+    var formPrefill by remember { mutableStateOf<SubscriptionPayload?>(null) }
 
     /* toast / error 统一走 Snackbar */
     LaunchedEffect(ui.toast, ui.error) {
@@ -72,7 +75,7 @@ fun HomeScreen(vm: MainViewModel, ui: UiState) {
         floatingActionButton = {
             if (ui.tab == Tab.Dash || ui.tab == Tab.List) {
                 FloatingActionButton(
-                    onClick = { editing = null; showForm = true },
+                    onClick = { showPicker = true },
                     containerColor = p.red,
                     contentColor = Color.White,
                     shape = RectangleShape,
@@ -94,11 +97,23 @@ fun HomeScreen(vm: MainViewModel, ui: UiState) {
         }
     }
 
+    if (showPicker) {
+        CatalogPicker(
+            vm = vm, ui = ui,
+            onManual = { showPicker = false; editing = null; formPrefill = null; showForm = true },
+            onPick = { payload ->
+                showPicker = false; editing = null; formPrefill = payload; showForm = true
+            },
+            onDismiss = { showPicker = false },
+        )
+    }
     if (showForm) {
         SubscriptionForm(
-            vm = vm, ui = ui, existing = editing,
-            onDismiss = { showForm = false; editing = null },
-            onDelete = { sub -> showForm = false; editing = null; confirmDelete = sub },
+            vm = vm, ui = ui, existing = editing, prefill = formPrefill,
+            onDismiss = { showForm = false; editing = null; formPrefill = null },
+            onDelete = { sub ->
+                showForm = false; editing = null; formPrefill = null; confirmDelete = sub
+            },
         )
     }
     confirmDelete?.let { sub ->

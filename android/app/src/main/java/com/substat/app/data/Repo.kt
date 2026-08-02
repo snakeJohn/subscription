@@ -22,6 +22,9 @@ class Repo(
     private val _fromCache = MutableStateFlow(false)
     val fromCache: StateFlow<Boolean> = _fromCache
 
+    /** 服务库内存缓存：首次拉取后驻留，重开选择器不再走网络 */
+    private var catalogCache: List<CatalogItem>? = null
+
     suspend fun prime() = store.prime()
 
     suspend fun loadCache() {
@@ -62,6 +65,10 @@ class Repo(
     suspend fun webdavBackup() = api.webdavBackup()
     suspend fun webdavTest(url: String, user: String, pass: String) =
         api.webdavTest(url, user, pass)
+
+    /** 服务库目录：优先返回内存缓存，未命中才请求网络 */
+    suspend fun catalog(): List<CatalogItem> =
+        catalogCache ?: api.catalog().items.also { catalogCache = it }
 
     /** 取汇率并落本地，供离线时继续折算 */
     suspend fun rate(refresh: Boolean): RateResponse {

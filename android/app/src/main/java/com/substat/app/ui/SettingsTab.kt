@@ -287,7 +287,7 @@ fun SettingsTab(vm: MainViewModel, ui: UiState) {
                 }
             }
             Spacer(Modifier.height(SpCtrl))
-            Text("SubStat for Android · 1.1.0", fontSize = 11.5.sp, color = p.ink4,
+            Text("SubStat for Android · 1.2.0", fontSize = 11.5.sp, color = p.ink4,
                 fontFamily = FontFamily.Monospace)
         }
     }

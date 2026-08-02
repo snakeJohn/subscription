@@ -48,25 +48,26 @@ fun SubscriptionForm(
     vm: MainViewModel,
     ui: UiState,
     existing: Subscription?,
+    prefill: SubscriptionPayload? = null,
     onDismiss: () -> Unit,
     onDelete: (Subscription) -> Unit,
 ) {
     val p = LocalPalette.current
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    var name by remember { mutableStateOf(existing?.name ?: "") }
-    var domain by remember { mutableStateOf(existing?.domain ?: "") }
-    var plan by remember { mutableStateOf(existing?.plan ?: "") }
+    var name by remember { mutableStateOf(existing?.name ?: prefill?.name ?: "") }
+    var domain by remember { mutableStateOf(existing?.domain ?: prefill?.domain ?: "") }
+    var plan by remember { mutableStateOf(existing?.plan ?: prefill?.plan ?: "") }
     var priceText by remember {
-        mutableStateOf(existing?.price?.let { trim(it) } ?: "")
+        mutableStateOf(existing?.price?.let { trim(it) } ?: prefill?.price?.let { trim(it) } ?: "")
     }
     var qtyText by remember { mutableStateOf((existing?.qty ?: 1).toString()) }
     var note by remember { mutableStateOf(existing?.note ?: "") }
-    var cat by remember { mutableStateOf(existing?.cat ?: "ai") }
-    var cycle by remember { mutableStateOf(Cycle.from(existing?.cycle)) }
-    var cur by remember { mutableStateOf(existing?.cur ?: ui.prefs.cur) }
+    var cat by remember { mutableStateOf(existing?.cat ?: prefill?.cat ?: "ai") }
+    var cycle by remember { mutableStateOf(Cycle.from(existing?.cycle ?: prefill?.cycle)) }
+    var cur by remember { mutableStateOf(existing?.cur ?: prefill?.cur ?: ui.prefs.cur) }
     var start by remember { mutableStateOf(existing?.start ?: LocalDate.now().toString()) }
-    var nsfw by remember { mutableStateOf(existing?.nsfw ?: false) }
+    var nsfw by remember { mutableStateOf(existing?.nsfw ?: (prefill?.nsfw == 1)) }
     var remind by remember { mutableStateOf(existing?.remind ?: true) }
     var err by remember { mutableStateOf<String?>(null) }
 
