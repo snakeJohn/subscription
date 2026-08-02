@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- 本地到期提醒（Android 13+ 需运行时授权） -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 应用内自动更新：下载后拉起系统安装器 -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:name=".SubStatApp"
@@ -40,5 +42,16 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/substat_widget_info" />
         </receiver>
+
+        <!-- 自动更新下载的 APK 经 FileProvider 授权给系统安装器 -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 </manifest>

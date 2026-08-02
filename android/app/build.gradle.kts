@@ -13,10 +13,23 @@ android {
         applicationId = "com.substat.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.2.0"
+        versionCode = 4
+        versionName = "1.3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
+    }
+
+    /* 固定发布签名：仅当环境提供 SUBSTAT_KEYSTORE 时创建（CI 从 Secret 解出密钥）；
+     * 本地开发无此环境变量，release 会回退到 debug 签名。 */
+    signingConfigs {
+        System.getenv("SUBSTAT_KEYSTORE")?.takeIf { it.isNotBlank() }?.let { ks ->
+            create("release") {
+                storeFile = file(ks)
+                storePassword = System.getenv("SUBSTAT_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("SUBSTAT_KEY_ALIAS")
+                keyPassword = System.getenv("SUBSTAT_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
@@ -31,8 +44,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            /* 未配置签名时用 debug 签名，保证 assembleRelease 可直接产出可安装包 */
-            signingConfig = signingConfigs.getByName("debug")
+            /* CI 用固定密钥签名（见 signingConfigs.release），保证各版本签名一致、
+             * 可覆盖升级；本地无密钥时回退 debug 签名，assembleRelease 仍可直接产出。 */
+            signingConfig = signingConfigs.findByName("release")
+                ?: signingConfigs.getByName("debug")
         }
     }
 
@@ -45,6 +60,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     packaging {
         resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" }

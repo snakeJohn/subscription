@@ -20,9 +20,11 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -30,6 +32,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,10 +43,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.substat.app.data.AppRelease
 import com.substat.app.data.Subscription
 import com.substat.app.data.SubscriptionPayload
 
@@ -125,6 +130,66 @@ fun HomeScreen(vm: MainViewModel, ui: UiState) {
             onDismiss = { confirmDelete = null },
         )
     }
+    val ctx = LocalContext.current
+    ui.update?.let { rel ->
+        UpdateDialog(
+            rel = rel,
+            downloading = ui.updateDownloading,
+            progress = ui.updateProgress,
+            onConfirm = { vm.downloadAndInstall(ctx) },
+            onDismiss = { if (!ui.updateDownloading) vm.dismissUpdate() },
+        )
+    }
+}
+
+/** 发现新版本时的更新对话框：展示更新说明 + 下载进度 */
+@Composable
+private fun UpdateDialog(
+    rel: AppRelease,
+    downloading: Boolean,
+    progress: Float,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val p = LocalPalette.current
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RectangleShape,
+        containerColor = p.paper,
+        title = {
+            Text("发现新版本 v${rel.versionName}", fontFamily = FontFamily.Serif,
+                fontWeight = FontWeight.SemiBold, color = p.ink)
+        },
+        text = {
+            Column {
+                if (rel.notes.isNotBlank()) {
+                    Text(rel.notes, fontSize = 13.sp, color = p.ink2, lineHeight = 19.sp)
+                }
+                if (downloading) {
+                    Spacer(Modifier.height(14.dp))
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.fillMaxWidth().height(4.dp),
+                        color = p.red, trackColor = p.paper2,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text("下载中 ${(progress * 100).toInt()}%", fontSize = 11.sp,
+                        color = p.ink3, fontFamily = FontFamily.Monospace)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm, enabled = !downloading) {
+                Text(if (downloading) "下载中…" else "立即更新", color = p.red,
+                    fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !downloading) {
+                Text("以后", color = p.ink3)
+            }
+        },
+    )
 }
 
 /** 顶部报头：刊名 + 汇率 + 币种切换 */

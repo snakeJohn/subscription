@@ -287,7 +287,13 @@ fun SettingsTab(vm: MainViewModel, ui: UiState) {
                 }
             }
             Spacer(Modifier.height(SpCtrl))
-            Text("SubStat for Android · 1.2.0", fontSize = 11.5.sp, color = p.ink4,
+            InkButton(
+                if (ui.updateChecking) "检查中…" else "检查更新",
+                { vm.checkUpdate(manual = true) },
+                enabled = !ui.updateChecking, modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(SpTight))
+            Text("SubStat for Android · 1.3.0", fontSize = 11.5.sp, color = p.ink4,
                 fontFamily = FontFamily.Monospace)
         }
     }

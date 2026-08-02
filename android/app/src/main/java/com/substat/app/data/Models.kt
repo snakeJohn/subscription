@@ -93,6 +93,16 @@ data class WebdavBackupResponse(
 @Serializable
 data class WebdavTestRequest(val url: String, val user: String, val pass: String)
 
+/** 应用更新清单：CI 随 Release 发布的 latest.json */
+@Serializable
+data class AppRelease(
+    val versionCode: Int = 0,
+    val versionName: String = "",
+    val apkUrl: String = "",
+    val notes: String = "",
+    val sha: String = "",
+)
+
 /** 服务库：公开参考价目录，供「＋」快速预填表单 */
 @Serializable
 data class CatalogPlan(

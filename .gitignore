@@ -15,3 +15,8 @@ android/.idea/
 android/*.iml
 *.apk
 *.aab
+
+# Android 签名密钥（切勿提交；丢失将无法再发布更新）
+android/keystore/
+*.jks
+*.keystore

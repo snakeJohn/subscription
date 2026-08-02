@@ -3,7 +3,13 @@ package com.substat.app.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
+import com.substat.app.BuildConfig
 import com.substat.app.SubStatApp
+import com.substat.app.data.AppRelease
 import com.substat.app.data.AuthException
 import com.substat.app.data.Billing
 import com.substat.app.data.CatalogItem
@@ -13,11 +19,14 @@ import com.substat.app.data.Repo
 import com.substat.app.data.SettingsStore
 import com.substat.app.data.Subscription
 import com.substat.app.data.SubscriptionPayload
+import com.substat.app.data.Updater
 import com.substat.app.work.ReminderScheduler
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
 enum class Phase { Booting, Setup, Login, Ready }
@@ -50,6 +59,11 @@ data class UiState(
     /** 服务库目录：首次打开选择器时拉取并驻留内存 */
     val catalog: List<CatalogItem> = emptyList(),
     val catalogLoading: Boolean = false,
+    /** 检测到的可用新版本；null 表示无更新或未检查 */
+    val update: AppRelease? = null,
+    val updateChecking: Boolean = false,
+    val updateDownloading: Boolean = false,
+    val updateProgress: Float = 0f,
 )
 
 class MainViewModel(
@@ -60,6 +74,9 @@ class MainViewModel(
 
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state
+
+    private val updater = Updater()
+    private var updateChecked = false
 
     init {
         viewModelScope.launch {
@@ -112,6 +129,7 @@ class MainViewModel(
         repo.refresh().onFailure { report(it) }
         runCatching { repo.rate(false) }
         scheduler.reschedule()
+        checkUpdate()
     }
 
     // ——— 配置 / 登录 ———
@@ -285,6 +303,64 @@ class MainViewModel(
         } catch (e: Exception) {
             _state.value = _state.value.copy(catalogLoading = false)
             report(e)
+        }
+    }
+
+    // ——— 自动更新 ———
+
+    /** 检查更新；manual=false 为每次启动的静默检查（每进程一次） */
+    fun checkUpdate(manual: Boolean = false) = viewModelScope.launch {
+        /* 只有正式版才自更新；调试版包名带 .debug，装 release 会变成两个应用 */
+        if (BuildConfig.APPLICATION_ID != "com.substat.app") {
+            if (manual) _state.value = _state.value.copy(toast = "调试版不检查更新")
+            return@launch
+        }
+        if (!manual && updateChecked) return@launch
+        updateChecked = true
+        if (manual) _state.value = _state.value.copy(updateChecking = true)
+        val latest = updater.fetchLatest()
+        _state.value = _state.value.copy(updateChecking = false)
+        if (latest == null) {
+            if (manual) _state.value = _state.value.copy(toast = "检查更新失败，请稍后再试")
+            return@launch
+        }
+        if (latest.versionCode > BuildConfig.VERSION_CODE) {
+            _state.value = _state.value.copy(update = latest)
+        } else if (manual) {
+            _state.value = _state.value.copy(toast = "已是最新版本 v${BuildConfig.VERSION_NAME}")
+        }
+    }
+
+    fun dismissUpdate() { _state.value = _state.value.copy(update = null) }
+
+    /** 下载并拉起安装；未授予「安装未知应用」时先引导到系统设置 */
+    fun downloadAndInstall(context: Context) = viewModelScope.launch {
+        val rel = _state.value.update ?: return@launch
+        if (!updater.canInstall(context)) {
+            runCatching {
+                context.startActivity(
+                    Intent(
+                        Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                        Uri.parse("package:${context.packageName}"),
+                    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                )
+            }
+            _state.value = _state.value.copy(toast = "请先允许安装未知应用，然后重试更新")
+            return@launch
+        }
+        _state.value = _state.value.copy(updateDownloading = true, updateProgress = 0f)
+        try {
+            val apk = withContext(Dispatchers.IO) {
+                updater.download(context, rel.apkUrl) { pr ->
+                    _state.value = _state.value.copy(updateProgress = pr.coerceAtLeast(0f))
+                }
+            }
+            _state.value = _state.value.copy(updateDownloading = false, update = null)
+            updater.install(context, apk)
+        } catch (e: Exception) {
+            _state.value = _state.value.copy(
+                updateDownloading = false, toast = "下载失败：${e.message}",
+            )
         }
     }
 

@@ -39,7 +39,20 @@ jobs:
       - name: Build debug APK
         run: ./gradlew assembleDebug --console=plain
 
+      # 从 Secret 解出固定签名密钥（仅 push 到 main；PR/手动触发无此步，release 回退 debug 签名）
+      - name: Decode release keystore
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        id: keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_B64 }}" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "path=$RUNNER_TEMP/release.jks" >> "$GITHUB_OUTPUT"
+
       - name: Build release APK
+        env:
+          SUBSTAT_KEYSTORE: ${{ steps.keystore.outputs.path }}
+          SUBSTAT_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          SUBSTAT_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          SUBSTAT_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: ./gradlew assembleRelease --console=plain
 
       - uses: actions/upload-artifact@v4
@@ -63,10 +76,19 @@ jobs:
 
       # main 分支每次构建成功都滚动更新「latest」Release，
       # 无需登录 GitHub 也能直接下载 APK（Artifacts 需要登录且会过期）
-      - name: Read versionName
+      - name: Read version + generate update manifest
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         id: ver
-        run: echo "v=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)" >> "$GITHUB_OUTPUT"
+        run: |
+          VC=$(grep -oP 'versionCode = \K[0-9]+' app/build.gradle.kts)
+          VN=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          echo "v=$VN" >> "$GITHUB_OUTPUT"
+          NOTES=$(git log -1 --pretty=%s)
+          APK="https://github.com/${{ github.repository }}/releases/download/android-latest/app-release.apk"
+          jq -n --argjson vc "$VC" --arg vn "$VN" --arg url "$APK" \
+                --arg notes "$NOTES" --arg sha "${{ github.sha }}" \
+            '{versionCode:$vc, versionName:$vn, apkUrl:$url, notes:$notes, sha:$sha}' > latest.json
+          echo "生成的 latest.json："; cat latest.json
 
       - name: Publish rolling release
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -75,12 +97,14 @@ jobs:
           tag_name: android-latest
           name: "SubStat Android v${{ steps.ver.outputs.v }}"
           body: |
-            主分支最新构建（自动更新）。
-            - `app-release.apk` — R8 压缩版，日常安装用这个（debug 签名，可直接安装）
+            主分支最新构建，App 内可自动更新。
+            - `app-release.apk` — R8 压缩、固定签名，日常安装用这个
             - `app-debug.apk` — 调试版，包名带 `.debug` 后缀，可与正式版共存
+            - `latest.json` — 版本清单，供 App 检查更新
             构建于 commit ${{ github.sha }}
           prerelease: false
           make_latest: true
           files: |
             android/app/build/outputs/apk/release/*.apk
             android/app/build/outputs/apk/debug/*.apk
+            android/latest.json
