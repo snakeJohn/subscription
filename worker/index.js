@@ -41,7 +41,6 @@ const DDL = [
      start TEXT NOT NULL, note TEXT DEFAULT '', nsfw INTEGER NOT NULL DEFAULT 0,
      enabled INTEGER NOT NULL DEFAULT 1, remind INTEGER NOT NULL DEFAULT 1,
      created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)`,
-  `CREATE INDEX IF NOT EXISTS idx_subs_user ON subscriptions(user_id)`,
   `CREATE INDEX IF NOT EXISTS idx_subs_enabled ON subscriptions(enabled)`,
   `CREATE TABLE IF NOT EXISTS user_settings(
      user_id TEXT NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL,
@@ -62,6 +61,8 @@ async function ensureSchema(env){
   /* 既有库（单用户时代）补列：subscriptions / notify_log 加 user_id */
   await tryExec(env, "ALTER TABLE subscriptions ADD COLUMN user_id TEXT NOT NULL DEFAULT ''");
   await tryExec(env, "ALTER TABLE notify_log ADD COLUMN user_id TEXT NOT NULL DEFAULT ''");
+  /* user_id 索引必须在补列之后建，否则既有库上引用未存在列会整批失败 */
+  await tryExec(env, "CREATE INDEX IF NOT EXISTS idx_subs_user ON subscriptions(user_id)");
   await ensureAdmin(env);      // 首次：建管理员并迁移既有数据
   schemaReady = true;
 }
