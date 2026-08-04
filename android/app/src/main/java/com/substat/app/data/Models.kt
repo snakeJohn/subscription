@@ -59,8 +59,16 @@ data class SubscriptionPayload(
 @Serializable data class CreateResponse(val ok: Boolean = false, val id: String = "")
 @Serializable data class OkResponse(val ok: Boolean = false)
 @Serializable data class ErrorResponse(val error: String = "")
-@Serializable data class AuthStatus(val configured: Boolean = false, val authed: Boolean = false)
-@Serializable data class LoginRequest(val password: String)
+@Serializable data class AuthStatus(
+    val configured: Boolean = false,
+    val registerOpen: Boolean = false,
+    val authed: Boolean = false,
+    val username: String? = null,
+    val isAdmin: Boolean = false,
+)
+@Serializable data class AuthResponse(val ok: Boolean = false, val username: String? = null)
+@Serializable data class LoginRequest(val username: String, val password: String)
+@Serializable data class RegisterRequest(val username: String, val password: String, val code: String)
 @Serializable
 data class RateResponse(
     val rate: Double? = null,

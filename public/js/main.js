@@ -9,7 +9,7 @@ import { renderSettings } from './settings.js';
 import { today, isoD } from '/shared/billing.js';
 
 const S = {
-  subs: [], raw: {}, channels: {},
+  subs: [], raw: {}, channels: {}, username:'',
   cur:'CNY', rate:7.15, rateMeta:null, warnDays:7, weekStart:1, theme:'light',
   view:'dash',
   filter:{ q:'', cat:'', cyc:'', nsfw:false, off:false },
@@ -43,40 +43,53 @@ async function boot(){
       <span style="font-size:13px">${esc(e.message)}</span></i>`;
     return;
   }
-  if(!st.configured){
-    $('#boot').innerHTML = `<div style="text-align:center;max-width:400px;padding:20px">
-      <i>尚未设置访问密码</i>
-      <p style="font-size:13px;color:var(--ink-3);margin-top:14px;line-height:1.7">
-        请执行 <code style="font-family:var(--mono)">wrangler secret put AUTH_PASSWORD</code>
-        设置密码后刷新页面。</p></div>`;
-    return;
-  }
-  if(!st.authed){ showLogin(); return; }
+  if(!st.authed){ showLogin(st); return; }
+  S.username = st.username || '';
   await enterApp();
 }
 
-function showLogin(msg){
+let loginMode = 'login';   // 'login' | 'register'
+function showLogin(st){
   $('#boot').classList.add('gone');
   $('#login').classList.remove('hide');
-  $('#login-tip').textContent = '数据存储于你的 Cloudflare D1，仅本人可访问。';
-  if(msg) $('#login-e').textContent = msg;
-  const f = $('#login-f');
-  f.onsubmit = async e => {
+  const registerOpen = !!(st && st.registerOpen);
+  const sw = $('#login-switch'), codeW = $('#login-code-w'),
+        btn = $('#login-b'), err = $('#login-e');
+  sw.style.display = registerOpen ? '' : 'none';
+
+  const applyMode = () => {
+    const reg = loginMode === 'register';
+    codeW.classList.toggle('hide', !reg);
+    btn.textContent = reg ? '注 册' : '登 录';
+    sw.textContent = reg ? '已有账号？去登录' : '没有账号？注册';
+    $('#login-p').setAttribute('autocomplete', reg ? 'new-password' : 'current-password');
+    err.textContent = '';
+  };
+  loginMode = 'login';
+  applyMode();
+  sw.onclick = e => {
     e.preventDefault();
-    const b = $('#login-b');
-    b.disabled = true;
-    $('#login-e').textContent = '';
+    loginMode = loginMode === 'login' ? 'register' : 'login';
+    applyMode();
+  };
+  $('#login-tip').textContent = '数据存储于 Cloudflare D1，账号之间互相隔离。';
+
+  $('#login-f').onsubmit = async e => {
+    e.preventDefault();
+    btn.disabled = true; err.textContent = '';
+    const u = $('#login-u').value.trim(), pw = $('#login-p').value;
     try{
-      await api.login($('#login-p').value);
+      if(loginMode === 'register') await api.register(u, pw, $('#login-code').value.trim());
+      else await api.login(u, pw);
+      S.username = u;
       $('#login').classList.add('hide');
       $('#boot').classList.remove('gone');
       await enterApp();
-    }catch(err){
-      $('#login-e').textContent = err.message;
-      $('#login-p').select();
-    }finally{ b.disabled = false; }
+    }catch(err2){
+      err.textContent = err2.message;
+    }finally{ btn.disabled = false; }
   };
-  setTimeout(() => $('#login-p').focus(), 60);
+  setTimeout(() => $('#login-u').focus(), 60);
 }
 
 async function enterApp(){
@@ -100,6 +113,7 @@ function applySettings(set){
   const st = set.settings || {};
   S.raw = st;
   S.channels = set.channels || {};
+  if(set.username) S.username = set.username;
   if(+st.rate > 0) S.rate = +st.rate;
   if(st.cur === 'USD' || st.cur === 'CNY') S.cur = st.cur;
   if(+st.warn > 0) S.warnDays = Math.min(90, +st.warn);

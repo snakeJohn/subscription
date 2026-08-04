@@ -108,12 +108,16 @@ export function renderSettings(S, ctl){
     </div></div>
 
     <div class="set-b"><h3>账户与安全</h3><div class="set-r">
-      <button class="btn" id="s-pw">修改访问密码</button>
-      <button class="btn gh" id="s-out">退出登录</button>
+      <label class="fld"><span>当前账号</span>
+        <div class="num" style="font-size:15px;color:var(--ink)">${esc(S.username || '—')}</div></label>
+      <div class="row">
+        <button class="btn" id="s-pw">修改密码</button>
+        <button class="btn gh" id="s-out">退出登录</button>
+      </div>
       <div class="doc">
         <p>密码以 PBKDF2-SHA256（10 万次迭代）哈希存储，会话 Cookie 为
           <code>HttpOnly + Secure + SameSite=Lax</code>，有效期 30 天。</p>
-        <p>登录失败同 IP 15 分钟内限 8 次。</p>
+        <p>登录失败同 IP 15 分钟内限 8 次。各账号数据互相隔离。</p>
       </div>
     </div></div>
 

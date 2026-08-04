@@ -48,7 +48,8 @@ class Repo(
     }
 
     suspend fun status() = api.status()
-    suspend fun login(pw: String) = api.login(pw)
+    suspend fun login(username: String, pw: String) = api.login(username, pw)
+    suspend fun register(username: String, pw: String, code: String) = api.register(username, pw, code)
     suspend fun logout() = api.logout()
     suspend fun probe(base: String) = api.probe(base)
 

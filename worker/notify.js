@@ -88,16 +88,16 @@ function buildMsg(items, cur, rate){
   return { title, body: lines.join('\n'), sum };
 }
 
-/* 主流程：找出窗口内待提醒的账单，逐条推送并写去重日志 */
-export async function runNotify(env, opts = {}){
-  const st = await loadSettings(env);
+/* 主流程：某个用户窗口内待提醒的账单，逐条推送并写去重日志 */
+export async function runNotify(env, uid, opts = {}){
+  const st = await loadUserSettings(env, uid);
   const cfg = notifyConfig(env, st);
   const cur = st.cur || 'CNY';
-  const rate = +st.rate || 7.15;
+  const rate = effectiveRate(st, await globalRate(env));
   const warn = Math.max(0, Math.min(60, parseInt(st.notify_days || st.warn || '3', 10)));
 
   const rows = await env.DB.prepare(
-    'SELECT * FROM subscriptions WHERE enabled=1 AND remind=1').all();
+    'SELECT * FROM subscriptions WHERE user_id=? AND enabled=1 AND remind=1').bind(uid).all();
   const subs = (rows.results || []).map(normalize);
 
   /* 只取窗口边界当天到期的（避免每天重复推同一笔） */
@@ -138,23 +138,48 @@ export async function runNotify(env, opts = {}){
       if(r.ok) sent++;
       results.push({ sub:o.sub.name, due, channel:ch, ok:r.ok, detail:r.body });
       await env.DB.prepare(
-        'INSERT INTO notify_log(sub_id,due_date,channel,ok,detail,sent_at) VALUES(?,?,?,?,?,?) ' +
+        'INSERT INTO notify_log(user_id,sub_id,due_date,channel,ok,detail,sent_at) VALUES(?,?,?,?,?,?,?) ' +
         'ON CONFLICT(sub_id,due_date,channel) DO UPDATE SET ' +
         'ok=excluded.ok, detail=excluded.detail, sent_at=excluded.sent_at')
-        .bind(o.sub.id, due, ch, r.ok ? 1 : 0, r.body || '', Date.now()).run();
+        .bind(uid, o.sub.id, due, ch, r.ok ? 1 : 0, r.body || '', Date.now()).run();
     }
   }
-  /* 清理 90 天前的日志 */
-  await env.DB.prepare('DELETE FROM notify_log WHERE sent_at < ?')
-    .bind(Date.now() - 90*864e5).run();
+  /* 清理本人 90 天前的日志 */
+  await env.DB.prepare('DELETE FROM notify_log WHERE user_id=? AND sent_at < ?')
+    .bind(uid, Date.now() - 90*864e5).run();
   return { sent, skipped, items:results };
 }
 
-export async function loadSettings(env){
-  const r = await env.DB.prepare('SELECT key,value FROM settings').all();
+/* cron：逐用户执行提醒 */
+export async function runNotifyAll(env, opts = {}){
+  const users = (await env.DB.prepare('SELECT id FROM users').all()).results || [];
+  let sent = 0, skipped = 0;
+  for(const u of users){
+    try{
+      const r = await runNotify(env, u.id, opts);
+      sent += r.sent || 0; skipped += r.skipped || 0;
+    }catch(e){ /* 单个用户失败不影响其余 */ }
+  }
+  return { users: users.length, sent, skipped };
+}
+
+/* 某用户的设置对象 */
+export async function loadUserSettings(env, uid){
+  const r = await env.DB.prepare(
+    'SELECT key,value FROM user_settings WHERE user_id=?').bind(uid).all();
   const out = {};
   for(const row of (r.results || [])) out[row.key] = row.value;
   return out;
+}
+/* 全局自动汇率（cron/刷新写入 settings.rate） */
+export async function globalRate(env){
+  const r = await env.DB.prepare("SELECT value FROM settings WHERE key='rate'").first();
+  return r && +r.value > 0 ? +r.value : 7.15;
+}
+/* 用户生效汇率：手动模式用本人 rate，否则用全局自动值 */
+export function effectiveRate(st, gRate){
+  if(st.rate_mode === 'manual' && +st.rate > 0) return +st.rate;
+  return gRate;
 }
 export function normalize(row){
   return { ...row, qty:+row.qty || 1, price:+row.price || 0,

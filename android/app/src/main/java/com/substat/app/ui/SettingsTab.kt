@@ -252,6 +252,11 @@ fun SettingsTab(vm: MainViewModel, ui: UiState) {
         // ——— 账户 ———
         item {
             SettingsSection("账户") {
+                FieldLabel("当前账号")
+                Text(ui.username.ifBlank { "—" }, fontSize = 16.sp, color = p.ink,
+                    fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(SpCtrl))
+                FieldLabel("服务器")
                 Text(ui.prefs.baseUrl.ifBlank { "未配置" }, fontSize = 13.sp, color = p.ink3,
                     fontFamily = FontFamily.Monospace, lineHeight = 20.sp)
                 Spacer(Modifier.height(SpCtrl))
@@ -293,7 +298,7 @@ fun SettingsTab(vm: MainViewModel, ui: UiState) {
                 enabled = !ui.updateChecking, modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(SpTight))
-            Text("SubStat for Android · 1.3.0", fontSize = 11.5.sp, color = p.ink4,
+            Text("SubStat for Android · 1.4.0", fontSize = 11.5.sp, color = p.ink4,
                 fontFamily = FontFamily.Monospace)
         }
     }

@@ -29,7 +29,10 @@ const body = d => JSON.stringify(d);
 export const api = {
   /* 鉴权 */
   status:   ()  => req('/auth/status'),
-  login:    p   => req('/auth/login',  { method:'POST', body: body({ password:p }) }),
+  login:    (username, password) =>
+    req('/auth/login',  { method:'POST', body: body({ username, password }) }),
+  register: (username, password, code) =>
+    req('/auth/register', { method:'POST', body: body({ username, password, code }) }),
   logout:   ()  => req('/auth/logout', { method:'POST' }),
   setPassword: (current, password) =>
     req('/auth/password', { method:'POST', body: body({ current, password }) }),

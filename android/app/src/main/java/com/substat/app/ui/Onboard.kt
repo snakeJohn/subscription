@@ -114,7 +114,12 @@ fun SetupScreen(vm: MainViewModel, ui: UiState) {
 @Composable
 fun LoginScreen(vm: MainViewModel, ui: UiState) {
     val p = LocalPalette.current
+    var mode by rememberSaveable { mutableStateOf("login") }   // login | register
+    var username by rememberSaveable { mutableStateOf("") }
     var pw by rememberSaveable { mutableStateOf("") }
+    var code by rememberSaveable { mutableStateOf("") }
+    val reg = mode == "register"
+    val submit = { if (reg) vm.register(username, pw, code) else vm.login(username, pw) }
     Box(
         Modifier.fillMaxSize().background(p.paper).systemBarsPadding().imePadding(),
         contentAlignment = Alignment.Center,
@@ -123,28 +128,53 @@ fun LoginScreen(vm: MainViewModel, ui: UiState) {
             Modifier.widthIn(max = 400.dp).padding(24.dp)
                 .verticalScroll(rememberScrollState()),
         ) {
-            Masthead("订阅计费统计")
+            Masthead(if (reg) "注册新账号" else "订阅计费统计")
             Spacer(Modifier.height(22.dp))
+            OutlinedTextField(
+                value = username,
+                onValueChange = { username = it },
+                label = { Text("用户名") },
+                singleLine = true,
+                isError = ui.loginError != null,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Ascii, imeAction = ImeAction.Next,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(12.dp))
             OutlinedTextField(
                 value = pw,
                 onValueChange = { pw = it },
-                label = { Text("访问密码") },
+                label = { Text("密码") },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 isError = ui.loginError != null,
                 keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password, imeAction = ImeAction.Go,
+                    keyboardType = KeyboardType.Password,
+                    imeAction = if (reg) ImeAction.Next else ImeAction.Go,
                 ),
-                keyboardActions = KeyboardActions(onGo = { vm.login(pw) }),
+                keyboardActions = KeyboardActions(onGo = { submit() }),
                 modifier = Modifier.fillMaxWidth(),
             )
+            if (reg) {
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = code,
+                    onValueChange = { code = it },
+                    label = { Text("注册码") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
+                    keyboardActions = KeyboardActions(onGo = { submit() }),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
             if (ui.loginError != null) {
                 Spacer(Modifier.height(8.dp))
                 Text(ui.loginError, color = p.bad, fontSize = 12.sp)
             }
             Spacer(Modifier.height(18.dp))
             Button(
-                onClick = { vm.login(pw) },
+                onClick = { submit() },
                 enabled = !ui.busy,
                 shape = androidx.compose.ui.graphics.RectangleShape,
                 colors = ButtonDefaults.buttonColors(containerColor = p.red),
@@ -153,9 +183,22 @@ fun LoginScreen(vm: MainViewModel, ui: UiState) {
                 if (ui.busy) CircularProgressIndicator(
                     modifier = Modifier.height(16.dp), strokeWidth = 2.dp,
                     color = androidx.compose.ui.graphics.Color.White,
-                ) else Text("登 录", fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                ) else Text(if (reg) "注 册" else "登 录",
+                    fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
             }
-            Spacer(Modifier.height(10.dp))
+            if (ui.registerOpen) {
+                Spacer(Modifier.height(6.dp))
+                androidx.compose.foundation.layout.Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    TextButton(onClick = { mode = if (reg) "login" else "register" }) {
+                        Text(if (reg) "已有账号？去登录" else "没有账号？注册",
+                            fontSize = 12.sp, color = p.red)
+                    }
+                }
+            }
+            Spacer(Modifier.height(4.dp))
             androidx.compose.foundation.layout.Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
@@ -166,7 +209,7 @@ fun LoginScreen(vm: MainViewModel, ui: UiState) {
             }
             Spacer(Modifier.height(6.dp))
             Text(
-                "数据存储在你自己的 Cloudflare D1，仅本人可访问。",
+                "数据存储在你自己的 Cloudflare D1，各账号数据互相隔离。",
                 fontSize = 11.sp, color = p.ink4,
             )
         }

@@ -12,19 +12,26 @@
 <body>
 <div class="boot" id="boot"><i>SubStat</i></div>
 
-<!-- 登录 -->
+<!-- 登录 / 注册 -->
 <div class="login hide" id="login">
   <div class="login-c">
     <div class="lg">SubStat</div>
     <div class="kick">订阅计费统计</div>
     <div class="dbl"></div>
-    <form id="login-f">
-      <label class="fld"><span>访问密码</span>
+    <form id="login-f" autocomplete="on">
+      <label class="fld"><span>用户名</span>
+        <input class="in" id="login-u" autocomplete="username" required>
+      </label>
+      <label class="fld"><span>密码</span>
         <input class="in" type="password" id="login-p" autocomplete="current-password" required>
+      </label>
+      <label class="fld hide" id="login-code-w"><span>注册码</span>
+        <input class="in" id="login-code" autocomplete="off">
       </label>
       <div class="err" id="login-e"></div>
       <button class="btn pri" type="submit" id="login-b">登 录</button>
     </form>
+    <p class="tip"><a href="#" id="login-switch"></a></p>
     <p class="tip" id="login-tip"></p>
   </div>
 </div>

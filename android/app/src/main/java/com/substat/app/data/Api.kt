@@ -79,10 +79,17 @@ class SubStatApi(
     // ——— 鉴权 ———
     suspend fun status(): AuthStatus = handle(client.get(url("/auth/status")) { auth() })
 
-    suspend fun login(password: String): OkResponse = handle(
+    suspend fun login(username: String, password: String): AuthResponse = handle(
         client.post(url("/auth/login")) {
             contentType(ContentType.Application.Json)
-            setBody(LoginRequest(password))
+            setBody(LoginRequest(username, password))
+        }
+    )
+
+    suspend fun register(username: String, password: String, code: String): AuthResponse = handle(
+        client.post(url("/auth/register")) {
+            contentType(ContentType.Application.Json)
+            setBody(RegisterRequest(username, password, code))
         }
     )
 

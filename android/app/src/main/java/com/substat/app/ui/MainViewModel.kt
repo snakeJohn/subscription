@@ -54,6 +54,10 @@ data class UiState(
     val setupError: String? = null,
     val loginError: String? = null,
     val busy: Boolean = false,
+    /** 是否开放注册（服务端配置了注册码）；登录页据此显示注册入口 */
+    val registerOpen: Boolean = false,
+    /** 当前登录用户名 */
+    val username: String = "",
     /** 服务端设置原文（含 webdav_* 等，敏感值为掩码），进设置页时拉取 */
     val serverSt: Map<String, String> = emptyMap(),
     /** 服务库目录：首次打开选择器时拉取并驻留内存 */
@@ -103,6 +107,9 @@ class MainViewModel(
         _state.value = _state.value.copy(loading = true)
         try {
             val st = repo.status()
+            _state.value = _state.value.copy(
+                registerOpen = st.registerOpen, username = st.username ?: "",
+            )
             if (!st.authed) {
                 _state.value = _state.value.copy(phase = Phase.Login, loading = false)
                 return
@@ -155,18 +162,33 @@ class MainViewModel(
         bootstrap()
     }
 
-    fun login(pw: String) = viewModelScope.launch {
-        if (pw.isBlank()) {
-            _state.value = _state.value.copy(loginError = "请输入密码")
+    fun login(username: String, pw: String) = viewModelScope.launch {
+        if (username.isBlank() || pw.isBlank()) {
+            _state.value = _state.value.copy(loginError = "请输入用户名与密码")
             return@launch
         }
         _state.value = _state.value.copy(busy = true, loginError = null)
         try {
-            repo.login(pw)
-            _state.value = _state.value.copy(busy = false)
+            repo.login(username.trim(), pw)
+            _state.value = _state.value.copy(busy = false, username = username.trim())
             enterApp()
         } catch (e: Exception) {
             _state.value = _state.value.copy(busy = false, loginError = e.message ?: "登录失败")
+        }
+    }
+
+    fun register(username: String, pw: String, code: String) = viewModelScope.launch {
+        if (username.isBlank() || pw.isBlank()) {
+            _state.value = _state.value.copy(loginError = "请输入用户名与密码")
+            return@launch
+        }
+        _state.value = _state.value.copy(busy = true, loginError = null)
+        try {
+            repo.register(username.trim(), pw, code.trim())
+            _state.value = _state.value.copy(busy = false, username = username.trim())
+            enterApp()
+        } catch (e: Exception) {
+            _state.value = _state.value.copy(busy = false, loginError = e.message ?: "注册失败")
         }
     }
 
